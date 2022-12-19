@@ -1,0 +1,43 @@
+---
+title: 'Lab 1: Getting to Know Each Other'
+author: "Jeffrey Yang"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Instructions:
+
+The purpose of this lab assignment is to get to know a student in the class, communicate the information learned in writing, and check to see if R Markdown is properly knitting to PDF. Start by putting your full name in the space provided above in the R Markdown file (Replace FIRSTNAME and LASTNAME).
+
+In this first lab, you will interview another student in the class and record this information in the appropriate space below. Your instructor will split you up into groups of 2 (or 3 if necessary). Record the information learned about the individual in the space below after the colon. If you are in a group of 3, make sure you work in a circle where person 1 interviews person 2, person 2 interviews person 3, and person 3 interviews person 1. Don't just get the answers required, but actually talk about them. Ask them questions about their answers and get to know them.
+
+After you are done, make sure that you can knit the R Markdown file to PDF. You don't need to submit this assignment as it is the first lab. For all the following labs, you'll need to submit it to Sakai
+
+# Interview:
+
+- Name of Student: Colton Spence
+
+- Origin: Cary
+
+- Year in School: Senior
+
+- Major or Minor: Math 
+
+- Involvement on Campus: None
+
+- Plans After Graduation: Job
+
+- Biggest Influence in Your Life: Parents
+
+- Favorite Thing to Do in Your Free Time: Basketball
+
+- Positive Thing During the Pandemic: See Family
+
+- Negative Thing During the Pandemic: Online Classes
+

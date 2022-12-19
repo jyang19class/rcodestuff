@@ -1,0 +1,81 @@
+---
+title: "Example of Homework"
+output: html_document
+#output: pdf_document
+---
+
+Name: Zhengwu Zhang.
+Collaborated with:
+
+
+```{r}
+## For reproducibility --- don't change this!
+set.seed(01182018)
+```
+
+
+The binomial distribution
+===
+
+The binomial distribution $\mathrm{Bin}(m,p)$ is defined by the number of successes in $m$ independent trials, each have probability $p$ of success. Think of flipping a coin $m$ times, where the coin is weighted to have probability $p$ of landing on heads.
+
+The R function `rbinom()` generates random variables with a binomial distribution. E.g., 
+
+```{r,eval=FALSE}
+rbinom(n=20, size=10, prob=0.5)
+```
+
+produces 20 observations from $\mathrm{Bin}(10,0.5)$.
+
+Some simple manipulations
+===
+
+- **1a.** Generate 200 random values from the $\mathrm{Bin}(10,0.5)$ distribution, and store them in a vector called `bin.draws.0.5`. Try to: 1) extract and display the first 10 elements; 2) extract and display all but the first 175 elements.
+
+```{r}
+bin.draws.0.5 = rbinom(n=200, size=10, prob=0.5)
+bin.draws.0.5[1:10]
+bin.draws.0.5[-(1:175)]
+```
+
+- **1b.** Add the first element of `bin.draws.0.5` to the seventh. Compare the second element to the fifth, which is larger? A bit more tricky: print the indices of the elements of `bin.draws.0.5` that are equal to 5. How many such elements are there? **Challenge**: theoretically, how many such elements would you expect there to be?
+
+```{r}
+bin.draws.0.5[1] + bin.draws.0.5[7]
+bin.draws.0.5[2] > bin.draws.0.5[5]
+which(bin.draws.0.5==5)
+length(which(bin.draws.0.5==5))
+choose(10,5)*0.5^5*0.5^5*200 #expected number of elements
+```
+
+- **1c.** Find the mean and standard deviation of `bin.draws.0.5`. Is the mean close what you'd expect? The standard deviation?
+
+```{r}
+mean(bin.draws.0.5)
+sd(bin.draws.0.5) #n*p*(1-p)
+
+sqrt(10*0.5^2) #expected value;
+```
+Yes, the mean is very close to the expected value. 
+
+- **1d.** Call `summary()` on `bin.draws.0.5` and describe the result.
+```{r}
+summary(bin.draws.0.5)
+```
+
+The `summary()` gives six numbers: the minimal value, the 25 percentile quantile, the median (50%) quantile, the mean value, the 75% quantile, and the maximal value. 
+
+- **1e.** Find the data type of the elements in `bin.draws.0.5` using `typeof()`. Then convert `bin.draws.0.5` to a vector of characters, storing the result as `bin.draws.0.5.char`, and use `typeof()` again to verify that you've done the conversion correctly. Call `summary()` on `bin.draws.0.5.char`. Is the result formatted differently from what you saw above? Why?
+```{r}
+typeof(bin.draws.0.5)
+bin.draw.0.5.char=as.character(bin.draws.0.5)
+typeof(bin.draw.0.5.char)
+summary(bin.draw.0.5.char)
+```
+
+You can say: "Not really, since `bin.draw.0.5.char` is a vector of characters, and `summary()` on characters is different from on numerical values. "
+
+Or "Yes, I was expecting similar results. "
+
+Either way is okay. 
+

@@ -1,0 +1,406 @@
+---
+title: "Exploratory Data Analysis"
+author: "STOR 320.02 Group 2 (Ex: STOR 320.02 Group 12)"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+library(R.matlab)
+
+# Import Data Below
+# read_csv()
+##Basically, I converted the 3 dimensional array in TNPCA_Coeff_HCP_Structural_Connectome.mat to a 2D data frame
+  #and added the subject IDs
+
+#read in matlab file:
+setwd("~/STOR 320 PROJECT/Project Data")
+TCPCA_Coeff_St <- readMat("TNPCA_Coeff_HCP_Structural_Connectome.mat")
+
+#Pull Subject IDs and assign to matrix subID
+subID <- TCPCA_Coeff_St$sub.id 
+
+##making empty matrix to fill in with PCA coeff and subID
+n=60
+Empty <- matrix(data=0, nrow=1065, ncol = 61)
+
+#set column 1 to subject IDs
+Empty[,1]=subID  
+
+##For loop that pulls each of the 60 vectors in PCA.Coeff and makes them each a column in empty matrix made above
+##So for PCA.Coeff, the original dimensions were 1x1065(the # of subjects)x60(K=60, so 60 PC scores)
+##This loop turns that^ into a matrix that is 1065(the number of subjects)x61(subject ID + 60 PC scores)
+for (i in 1:n) {
+  nam <- paste("PCA", i,sep="") #this makes the variable names PCA1, PCA2, PCA#, etc
+  Empty[,i+1] = assign(nam, as.matrix(TCPCA_Coeff_St$PCA.Coeff[,,i])) #This pulls each PCA column, assigns it a name, and puts it in the matrix
+}
+
+##So now we have a matrix with the subject ID #s and all the PC scores for each K component
+#It is missing all column names though
+Empty 
+
+##making the vector of column names to add to the data frame at the end
+Colnames= rep(NA, 60) #Make empty list to fill in with column names
+Colnames[1]="Subject" #Assign first column name "Subject"
+
+## for loop that makes characters "PCA1" thru "PCA60" and adds them to Colnames vector
+for (i in 1:length(Colnames)) {
+Colnames[i+1] <- paste("PCA", i, sep = "")
+}
+
+Colnames ##61 characters long: "Subject", "PCA1", "PCA2", etc
+
+##convert matrix made above to data frame
+TNPCA_Coeff_HCP_Str <- data.frame(Empty) 
+
+##adds column names based off the Colnames vector to final data frame
+colnames(TNPCA_Coeff_HCP_Str) <- Colnames
+
+#Final Data Frame
+TNPCA_Coeff_HCP_Str
+
+save(TNPCA_Coeff_HCP_Str, file = "TNPCA_Coeff_HCP_Str.RData")
+
+#Data Frames with Traits
+table1_hcp <- read.csv("table1_hcp.csv")
+table2_hcp <- read.csv("table2_hcp.csv")
+
+library(tidyverse)
+
+New_data1 = TNPCA_Coeff_HCP_Str %>% 
+  left_join(table1_hcp, by = "Subject")
+
+Dataset_all = New_data1 %>%
+  left_join(table2_hcp, by = "Subject")
+
+Dataset_traits = Dataset_all[,c(1,62:833)]  
+
+```
+
+# Creator: Ashley Morrison 
+
+### Q1: Levels of alcohol use was found to be reflected in the structural connectome. Does the structural connectome also reflect different levels of drug use? 
+
+```{r}
+#install.packages("ggplot2")
+
+#Making drug use subset to plot first and second principal components from:
+Drug_use <- Dataset_all %>% 
+  select(., Subject, PCA1, PCA2, PCA3, SSAGA_Mj_Times_Used,SSAGA_Times_Used_Hallucinogens,SSAGA_Times_Used_Opiates,SSAGA_Times_Used_Sedatives,SSAGA_Times_Used_Stimulants)
+
+##can't see anything meaningful when all 1000+ subjects are plotted
+Mj_use_plot <- ggplot(Dataset_all, aes(PCA1, PCA2, colour = SSAGA_Mj_Times_Used)) + 
+  geom_point()
+
+##So pick just 100 subjects representing heavy (5) and no use (0) to compare for each drug:
+
+##Marijuana
+Mj_reduced <- Drug_use %>% 
+  filter(.,(SSAGA_Mj_Times_Used == 5) | (SSAGA_Mj_Times_Used == 1)) %>% 
+  arrange(., desc(SSAGA_Mj_Times_Used)) %>% 
+  slice(c(1:101,210:310))
+
+Mj_use_plot_2 <- ggplot(Mj_reduced, aes(PCA1, PCA2, colour = SSAGA_Mj_Times_Used)) + 
+  geom_point() +
+  ggtitle("Marijuana use, high (5) vs none(0)")
+
+Mj_use_plot_2
+
+##Keep trying w remaining substances
+
+##Hallucinogens
+Hal_reduced <- Drug_use %>% 
+  filter(.,(SSAGA_Times_Used_Hallucinogens == 5) | (SSAGA_Times_Used_Hallucinogens == 0)) %>% 
+  arrange(., desc(SSAGA_Times_Used_Hallucinogens)) %>% 
+  slice(c(1:133))
+ 
+Hal_use_plot <- ggplot(Hal_reduced, aes(PCA1, PCA2, colour = SSAGA_Times_Used_Hallucinogens)) + 
+  geom_point() +
+  ggtitle("Hallucinogen use, high (5) vs none(0)")
+
+##Opiates
+Opiates_reduced <- Drug_use %>% 
+  filter(.,(SSAGA_Times_Used_Opiates == 5) | (SSAGA_Times_Used_Opiates == 0)) %>% 
+  arrange(., desc(SSAGA_Times_Used_Opiates)) %>% 
+  slice(c(1:145))
+
+Op_use_plot <- ggplot(Opiates_reduced, aes(PCA1, PCA2, colour = SSAGA_Times_Used_Opiates)) + 
+  geom_point()+
+  ggtitle("Opiate use, high (5) vs none(0)")
+
+Op_use_plot
+
+##Sedatives
+Sed_reduced <- Drug_use %>% 
+  filter(.,(SSAGA_Times_Used_Sedatives == 5) | (SSAGA_Times_Used_Sedatives == 0)) %>% 
+  arrange(., desc(SSAGA_Times_Used_Sedatives)) %>% 
+  slice(c(1:135))
+
+Sed_use_plot <- ggplot(Sed_reduced, aes(PCA1, PCA2, colour = SSAGA_Times_Used_Sedatives)) + 
+  geom_point()+
+  ggtitle("Sedative use, high (5) vs none(0)")
+
+Sed_use_plot
+
+##Stimulants
+Stim_reduced <- Drug_use %>% 
+  filter(.,(SSAGA_Times_Used_Stimulants == 5) | (SSAGA_Times_Used_Stimulants == 0)) %>% 
+  arrange(., desc(SSAGA_Times_Used_Stimulants)) %>%
+  slice(c(1:140))
+
+Stim_use_plot <- ggplot(Stim_reduced, aes(PCA1, PCA2, colour = SSAGA_Times_Used_Stimulants)) + 
+  geom_point() +
+  ggtitle("Stimulant use, high (5) vs none(0)")
+
+Stim_use_plot
+
+##No plot shows obvious clustering with the first two principal components and different drug use
+#Will need to add in the third component like the paper (scatterplot3d?)
+#May need to examine other factors like time since last use or age started
+
+```
+
+### Q2: Does the Structural Connectome reflect different levels of drug use if we add the 3rd PC?
+
+```{r}
+##Load in packages for interactive 3D scatter plot
+#library(tidyverse)
+install.packages("plotly")
+#library(plotly)
+
+##Marijuana
+MJ_use_third <- plot_ly(
+  MJ_reduced, x= MJ_reduced$PCA1, y= MJ_reduced$PCA2, z= MJ_reduced$PCA3,
+  color = MJ_reduced$SSAGA_Mj_Times_Used, colors = c('#BF382A', '#0C4B8E')
+) %>% 
+  add_markers() %>% 
+  layout(
+    title = "Marijuana no use (0) vs high use (5)",
+    scene = list(xaxis = list(title = 'PCA1'),
+                 yaxix = list(title = 'PCA2'),
+                 zaxis = list(title = 'PCA3'))
+  )
+
+##Hallucinogens
+Hal_use_third <- plot_ly(
+  Hal_reduced, x= Hal_reduced$PCA1, y= Hal_reduced$PCA2, z= Hal_reduced$PCA3,
+  color = Hal_reduced$SSAGA_Times_Used_Hallucinogens, colors = c('#BF382A', '#0C4B8E')
+) %>% 
+  add_markers() %>% 
+  layout(
+    title = "Hallucinogens no use (0) vs high use (5)",
+    scene = list(xaxis = list(title = 'PCA1'),
+                 yaxix = list(title = 'PCA2'),
+                 zaxis = list(title = 'PCA3'))
+  )
+Hal_use_third
+
+##Opiates
+Op_use_third <- plot_ly(
+  Opiates_reduced, x= Opiates_reduced$PCA1, y= Opiates_reduced$PCA2, z= Opiates_reduced$PCA3,
+  color = Opiates_reduced$SSAGA_Times_Used_Opiates, colors = c('#BF382A', '#0C4B8E')
+) %>% 
+  add_markers() %>% 
+  layout(
+    title = "Opiates no use (0) vs high use (5)",
+    scene = list(xaxis = list(title = 'PCA1'),
+                 yaxix = list(title = 'PCA2'),
+                 zaxis = list(title = 'PCA3'))
+  )
+Op_use_third
+
+##Sedatives
+Sed_use_third <- plot_ly(
+  Sed_reduced, x= Sed_reduced$PCA1, y= Sed_reduced$PCA2, z= Sed_reduced$PCA3,
+  color = Sed_reduced$SSAGA_Times_Used_Sedatives, colors = c('#BF382A', '#0C4B8E')
+) %>% 
+  add_markers() %>% 
+  layout(
+    title = "Sedative no use (0) vs high use (5)",
+    scene = list(xaxis = list(title = 'PCA1'),
+                 yaxix = list(title = 'PCA2'),
+                 zaxis = list(title = 'PCA3'))
+  )
+Sed_use_third
+
+##Stimulants
+Stim_use_third <- plot_ly(
+  Stim_reduced, x= Stim_reduced$PCA1, y= Stim_reduced$PCA2, z= Stim_reduced$PCA3,
+  color = Stim_reduced$SSAGA_Times_Used_Stimulants, colors = c('#BF382A', '#0C4B8E')
+) %>% 
+  add_markers() %>% 
+  layout(
+    title = "Stimulant no use (0) vs high use (5)",
+    scene = list(xaxis = list(title = 'PCA1'),
+                 yaxix = list(title = 'PCA2'),
+                 zaxis = list(title = 'PCA3'))
+  )
+Stim_use_third
+
+##No clear clustering between structural connectome and drug use when adding in thrid dimension
+#check alcohol and clustering?
+
+
+```
+
+# Interpreter: Jeffrey Yang
+
+### Q1: How do PC scores compare between people who drink and different age groups?
+
+```{r}
+#
+```
+
+### Q2: Is there a significant difference between age groups and smoking/drinking habits?
+
+```{r}
+#
+```
+
+# Orator: Isabella Hastings
+
+### Q1: What is the relationship between 2 min endurance test score (age adjusted) and different drug use frequency? Which drug has the greatest effect on the 2 min endurance test score?
+
+```{r}
+End.test=Dataset_traits[,c("Endurance_AgeAdj", "SSAGA_Times_Used_Illicits", "SSAGA_Times_Used_Cocaine", "SSAGA_Times_Used_Hallucinogens", "SSAGA_Times_Used_Opiates", "SSAGA_Times_Used_Sedatives", "SSAGA_Times_Used_Stimulants")]
+End.test=na.omit(End.test)
+
+# stepwise backward elimination
+End.test.1=lm(Endurance_AgeAdj~SSAGA_Times_Used_Illicits+SSAGA_Times_Used_Cocaine+SSAGA_Times_Used_Hallucinogens+SSAGA_Times_Used_Opiates+SSAGA_Times_Used_Sedatives+SSAGA_Times_Used_Stimulants, data=End.test)
+summary(End.test.1)
+# remove variable with highest p value: opiates
+End.test.2=lm(Endurance_AgeAdj~SSAGA_Times_Used_Illicits+SSAGA_Times_Used_Cocaine+SSAGA_Times_Used_Hallucinogens+SSAGA_Times_Used_Sedatives+SSAGA_Times_Used_Stimulants, data=End.test)
+summary(End.test.2)
+# remove illicits
+End.test.3=lm(Endurance_AgeAdj~SSAGA_Times_Used_Cocaine+SSAGA_Times_Used_Hallucinogens+SSAGA_Times_Used_Sedatives+SSAGA_Times_Used_Stimulants, data=End.test)
+summary(End.test.3)
+# remove sedatives
+End.test.4=lm(Endurance_AgeAdj~SSAGA_Times_Used_Cocaine+SSAGA_Times_Used_Hallucinogens+SSAGA_Times_Used_Stimulants, data=End.test)
+summary(End.test.4)
+# remove stimulants
+End.test.5=lm(Endurance_AgeAdj~SSAGA_Times_Used_Cocaine+SSAGA_Times_Used_Hallucinogens, data=End.test)
+summary(End.test.5)
+# remove cocaine
+End.test.6.final=lm(Endurance_AgeAdj~SSAGA_Times_Used_Hallucinogens, data=End.test)
+summary(End.test.6.final)
+# hallucinogens were the only type of drug that with higher frequency of use reliably predicted endurance scores, using p < 0.05
+
+# backward elimination, not manual
+
+End.test.1a=lm(Endurance_AgeAdj~SSAGA_Times_Used_Illicits+SSAGA_Times_Used_Cocaine+SSAGA_Times_Used_Hallucinogens+SSAGA_Times_Used_Opiates+SSAGA_Times_Used_Sedatives+SSAGA_Times_Used_Stimulants, data=End.test)
+summary(End.test.1a)
+Full=lm(Endurance_AgeAdj~SSAGA_Times_Used_Illicits+SSAGA_Times_Used_Cocaine+SSAGA_Times_Used_Hallucinogens+SSAGA_Times_Used_Opiates+SSAGA_Times_Used_Sedatives+SSAGA_Times_Used_Stimulants, data=End.test)
+MSE=(summary(Full)$sigma)^2
+step(Full,scale=MSE)
+
+# again, confirms frequent use of hallucinogens is the best predictor of drugs to predict age adjusted endurance test
+
+#stepwise, still confirming hallucinogens!
+none=lm(Endurance_AgeAdj~1,data=End.test)
+step(none,scope=list(upper=Full),scale=MSE)
+
+# plotting
+ggplot(data=End.test, aes(x=Endurance_AgeAdj, y=SSAGA_Times_Used_Hallucinogens))+geom_point()
+
+
+```
+
+### Q2: Does frequency of alcohol consumption or BMI have a greater effect on sleep quality?
+
+```{r}
+SleepQ=Dataset_traits[,c("SSAGA_Alc_12_Frq_Drk","BMI","PSQI_Quality")]
+SleepQ=na.omit(SleepQ)
+summary(SleepQ)
+
+SQ_Alc=lm(PSQI_Quality~SSAGA_Alc_12_Frq_Drk, data=SleepQ)
+SQ_BMI=lm(PSQI_Quality~BMI, data=SleepQ)
+SQ_AlcBMI=lm(PSQI_Quality~-1*(SSAGA_Alc_12_Frq_Drk)+sqrt(BMI), data=SleepQ)
+
+summary(SQ_Alc)
+summary(SQ_BMI)
+summary(SQ_AlcBMI)
+
+plot(SQ_BMI$residuals~SQ_BMI$fitted.values)
+abline(a=0, b=0)
+
+plot(SQ_AlcBMI$residuals~SQ_AlcBMI$fitted.values)
+abline(a=0, b=0)
+
+```
+
+# Orator: Helen Johnston
+
+### Q1: Are people who drink/smoke more often more likely to score poorly on the processing speed test? 
+
+```{r}
+#
+```
+
+### Q2: To what extent do years of education have an effect on test scores (Table 1)?
+
+```{r}
+#
+```
+
+# Deliverer: Varsha Sridhar
+
+### Q1: Does marijuana use and dependency have an effect on overall sleep quality? 
+
+```{r}
+#
+```
+
+### Q2: Does cortical thickness of superior frontal cortex have any relationship with NIH Toolbox Pattern Comparison Processing Speed Test: Unadjusted Scale Score? 
+
+```{r}
+#
+```
+
+# Follow-up Questions
+
+### New Questions Based Off Initial Investigation
+
+- Q1: AM - Will drug use be reflected in the SC if age or other factors are taken into consideration?
+- Q2: WRITE_QUESTION_HERE
+- Q3: WRITE_QUESTION_HERE 
+- Q4: WRITE_QUESTION_HERE
+
+### Investigation of Follow-up Questions
+
+GIVE WHAT 2 QUESTIONS YOU ATTEMPTED TO INVESTIGATE FURTHER IN COMPLETE SENTENCES (*Example:* Our group decided to investigate Q2 and Q4 in further detail.)
+
+SHOW AT LEAST 2 TABLES OR FIGURES BELOW THAT EXPLORE ANSWERS FOR THE QUESTIONS YOU ARE INVESTIGATING FURTHER.
+
+```{r}
+#
+```
+
+```{r}
+#
+```
+
+# Summary
+
+GIVE A 2 PARAGRAPH SUMMARY. 
+
+PARAGRAPH 1 SHOULD DESCRIBE WHAT YOU LEARNED ABOUT YOUR DATA FROM INVESTIGATING THE INITIAL QUESTIONS. DID YOU FIND ANYTHING UNUSUAL IN YOUR DATA? DID ANYTHING SURPRISE YOU? WHICH OF THE INITIAL QUESTIONS WERE HELPFUL IN LEADING YOU TO MORE QUESTIONS?
+
+PARAGRAPH 2 SHOULD SUMMARIZE WHAT YOU LEARNED FROM INVESTIGATING THE FOLLOW-UP QUESTIONS. WHY ARE THESE FOLLOW-UP QUESTIONS INTERESTING FOR INVESTIGATION? DESCRIBE THE TABLES/FIGURES YOU USED TO EXPLORE ANSWERS TO THESE FOLLOW-UP QUESTIONS? WHAT DID YOU LEARN FROM THE TABLES/FIGURES REGARDING THE FOLLOW-UP QUESTIONS YOU PROPOSED?
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

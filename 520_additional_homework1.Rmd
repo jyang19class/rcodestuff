@@ -1,0 +1,194 @@
+---
+title: 'STOR 520 Homework1: Debugging and Testing'
+output: pdf_document
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE, autodep=TRUE, cache.comments=TRUE)
+```
+
+Name:  Jeffrey Yang
+
+Collaborated with:  
+
+This homework is due on Oct. 27th at 11:59pm. You can collaborate with your classmates, but you must identify their names above, and you must submit **your own** homework as a PDF file on Sakai.
+
+
+**A special note**: You might see **Challenge** questions. You are not required to answer these challenge questions. However, 
+
+- if you answered the challenge questions, you will get bonus points, allowing you to make mistakes in other parts of the homework and still get 10/10. 
+
+- the maximum score is 10, so your score is capped at 10.  
+
+You also see some optional questions. Again, you are not required to answer these questions, but additional credits will be given. 
+
+**This week's agenda**: bug hunting and fixing
+
+Bug hunt practice
+===
+
+In this section of the homework, you will fix a bunch of buggy function definitions. Probably the easiest workflow is to define the function in your console, and then run the sample commands---they will either give errors or produce the wrong outputs. Using any combination of: reading the error messages, `traceback()`, and `cat()` or `print()`, you must find and fix the bugs. Sometimes it can also help to try multiple different inputs, i.e., try new function calls, rather than just looking at the sample calls given to you, in order to determine the bugs. You shouldn't show any of your debugging work in your final knitted answers---so, don't show calls to `traceback()`, and don't leave any `cat()` or `print()` calls in the final, fixed function. (You don't have to do anything yet, this was just to setup this section of the lab)
+
+- **1a.** Below is a function called `get.cols.with.ab.zeros()`, but it has a few bugs. A few sample matrices are given below in `mat`, `identity.mat`, along with some sample calls that give errors. After fixing the bugs, the calls to `get.cols.with.ab.zeros()` should produce the outputs as described in comments.
+
+```{r}
+# Function: cols.with.ab.zeros, to retrieve columns of matrix that have between
+#   a and b zeros, each
+# Inputs:
+# - my.mat: the original matrix 
+# - a: lower bound for number of zeros allowed; default is 0
+# - b: upper bound for number of zeros allowed; default is Inf
+# Output: the new matrix
+
+cols.with.ab.zeros = function(my.mat, a=0, b=Inf) {
+  zeros.per.column = colSums(my.mat == 0)
+  i.to.keep = a <= zeros.per.column & zeros.per.column <= b
+  return(my.mat[,i.to.keep, drop=F])
+}
+
+mat = matrix(c(0,0,1,0,1,1,1,1,1), 3, 3)
+identity.mat = diag(1, 3)
+cols.with.ab.zeros(mat) # Should get back original matrix
+cols.with.ab.zeros(mat, a=1, b=2) # Should get back first 2 columns of mat
+cols.with.ab.zeros(mat, a=2, b=2) # Should get just 1st column of mat; note
+  # this should still be a matrix though, and not a numeric vector!
+cols.with.ab.zeros(identity.mat, a=2, b=2) # Should get back original matrix
+```
+
+- **1b.** Below is a function called `list.extractor()`, but it has a few bugs. A sample list is given below in `cool.list`, along with some sample calls that give errors. After fixing the bugs, the calls to `list.extractor()` should produce the outputs as described in comments.
+
+```{r, error = T}
+# Function: list.extractor, to extract elements of a list
+# Inputs:
+# - my.list: the original list 
+# - i.to.keep: vector of indices, corresponding to elements of the list we
+#   want to keep. Default is NULL, in which case this argument is ignored
+# - i.to.remove: vector of indices, corresponding to elements of the list we
+#   want to remove Default is NULL, in which case this argument is ignored.
+#   NOTE: if both i.to.keep and i.to.remove are non-NULL, then the first 
+#   one should take precedence (i.e., we don't remove anything)
+# Output: the new list
+
+list.extractor = function(my.list, i.to.keep=NULL, i.to.remove=NULL) {
+  if (!is.null(i.to.keep)) {
+    return(my.list[i.to.keep])
+  }
+  if (!is.null(i.to.remove)) {
+    return(my.list[-i.to.remove])
+  }
+  return(my.list)
+}
+
+cool.list = list(ints=1:10, lets=letters[1:8], fracs=1:7/7,
+                 bools=sample(c(TRUE,FALSE), 5, replace=TRUE))
+list.extractor(cool.list, i.to.keep=c(1,3)) # Should get list with ints, fracs
+list.extractor(cool.list, i.to.remove=4) # Should get list without bools
+list.extractor(cool.list, i.to.keep=2:4, i.to.remove=4) # Should get list with
+  # lets, fracs, and bools (the i.to.remove argument should be ignored)
+```
+
+
+
+Browsing practice
+===
+
+- **2a.** Below is a function `add.up.inv.powers()` that computes $1^1+2^{1/2}+\ldots+(n-1)^{1/(n-1)}+n^{1/n}$, via a `for()` loop, for some value of $n$, specified in the first argument. The second argument is `verbose`; if this is TRUE (the default is FALSE), then the function prints out the current summand to the console, as a roman numeral. A short demo is given below. You'll use `add.up.inv.powers()` and `roman.cat()` to do a bit of exploration with `browse()` in the next several questions. But before this, for good vectorization practice, show that you can compute the same expression as done in `add.up.inv.powers()`, but without any explicit looping, i.e., just using vectorization and `sum()`. Check that you get the same answers for the demo inputs. Hint: for this, you can use `all.equal()`, to check for "very near" equality, since you may not get exact equality in all digits.
+
+```{r}
+add.up.inv.powers = function(n, verbose=FALSE) {
+  x = 0
+  for (i in 1:n) {
+    x = x + i^(1/i)
+    if (verbose) roman.cat(i)
+  }
+  if (verbose) cat("\n")
+  return(x)
+}
+
+vectorized.add = function(n, verbose=FALSE) {
+  spread = 1:n
+  x = sum(spread^(1/spread))
+  return(x)
+}
+
+roman.cat = function(num) {
+  roman.num = as.roman(num)
+  roman.str = as.character(roman.num)
+  cat(roman.str, "... ")
+}
+
+add.up.inv.powers(n=3, verb=FALSE)
+add.up.inv.powers(n=5, verb=FALSE)
+add.up.inv.powers(n=10, verb=FALSE)
+all.equal(vectorized.add(n=3), add.up.inv.powers(n=3, verb=FALSE))
+all.equal(vectorized.add(n=5), add.up.inv.powers(n=5, verb=FALSE))
+all.equal(vectorized.add(n=10), add.up.inv.powers(n=10, verb=FALSE))
+```
+
+- **2b.** Copy and paste the definition of `add.up.inv.powers()` below, into an R code chunk that will *not* be evaluated when you knit (hence the `eval=FALSE`). You'll use this as a working ground for the code that you'll run in your console. Place a call to `browser()` inside `add.up.inv.powers()`, in between the line `x = 0` and the `for()` loop. Then update this function definition in your console (i.e., just run the code block that defines `add.up.inv.powers()`), and call the function in the console with `n=5` and the default value of `verbose`. 
+```{r, eval=FALSE}
+add.up.inv.powers = function(n, verbose=FALSE) {
+  x = 0
+  browser()
+  for (i in 1:n) {
+    x = x + i^(1/i)
+    if (verbose) roman.cat(i)
+  }
+  if (verbose) cat("\n")
+  return(x)
+}
+add.up.inv.powers(5)
+```
+
+
+    Now you'll enter the R Studio browser mode. First, just look around: you should see the "Console" panel (as always), the "Source Viewer" panel, the "Environment" panel, and the "Traceback" panel. (The console is arguably the most important but the others add nice graphical displays.) Hit the return key repeatedly (while your cursor is in the console) to step through the function line by line, until you get to the last line of the function. Once this last line is run, you'll immediately exit the browser mode. Try the whole process again a few times, each time looking at the various R Studio panels and familiarizing yourself with what they are displaying. Instead of hitting the return key, note that you can type "n" in the console to step to the next line. Note also that you can type in variable names in the console and hit enter, to see their current values (alternatively, the "Environment" panel will show you this too).
+
+- **2c.** Answer the following questions, exploring what you can do in browser mode.
+
+- How do you display the value of the variable `n` defined in the `add.up.inv.powers()` function? (Recall that typing "n" just gives you the next line.)  
+Use print(n)
+
+- How do you exit the browser mode prematurely, before the last line is reached?
+enter Q
+
+- Suppose you were to run the browser with a call like `cool.new.num = add.up.inv.powers(n=5)` in the console; if you ran the browser to completion, would the variable `cool.new.num` be defined in your console? 
+No
+
+- What happens if you were to save the output again in a different variable name, but you didn't run the browser to completion, i.e., you exited prematurely?
+The variable gets the value from the function when it runs normally
+
+- Can you define new variables while in browser mode? Yes
+
+- Can you redefine existing variables in the browser? What happens, for example, if you were to redefine `x` the moment you entered the browser mode?
+Yes, x would have the new definition
+
+- What happens if you change the location of the call to `browser()` within the definition of the function `add.up.inv.powers()`?   
+We would enter the browser at the location of the call, code before would already run
+
+<br>
+
+
+Browsing for bugs
+===
+
+- **3a.** Now that you've had good practice with it, use `browser()` to find and fix bugs in the function `fibonacci()` below. This function is supposed to generate the $n$th number in the Fibonacci sequence 1, 1, 2, 3, 5, 8, 13, 21, 34, ..., which begins with 1, 1, and where every number after this is the sum of the previous two. Describe what bugs you found, how you found them, and what you did to fix them. Once this is done, your function should be producing outputs on the test cases below that match those described in the comments.
+
+```{r, error = T}
+fibonacci = function(n) {
+  #browser()
+  my.fib = c(1,1)
+  if (n <= 2){
+    return(my.fib[n])
+  }
+  for (i in 2:(n-1)) my.fib[i+1] = my.fib[i] + my.fib[i-1]  
+  return(my.fib[n])
+}
+
+fibonacci(1) # Should be 1
+fibonacci(2) # Should be 1
+fibonacci(3) # Should be 2
+fibonacci(5) # Should be 5
+fibonacci(9) # Should be 34
+```
+If n <= 2, no need to run for loop;found when running browser; so added an if statement to check
+Should return by index n, not i; found using browser

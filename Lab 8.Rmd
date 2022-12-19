@@ -1,0 +1,65 @@
+---
+title: 'Lab 8: Data Import'
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+Name:  Jeffrey Yang
+
+
+Collaborated with:  
+
+
+This lab is to be done in the lab session (completed outside of class if need be). You can collaborate with your classmates, but you must identify their names above, and you must submit **your own** lab as an knitted PDF/html file. The deadline for each lab session is
+
+- **Deadline for 320.404: W 11:59 PM**
+- **Deadline for 320.406: F 11:59 PM**
+- **Deadline for 320.407: W 11:59 PM**
+
+
+
+**This week's agenda**: Data Import;
+
+
+```{r , include=FALSE}
+# This is a good place to put libraries required for using the ggplot function
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen=999)
+library(tidyverse) #Loads the tidyverse package for visualization
+```
+
+
+Due to the cancellation of our Tuesday's class on Oct. 12, I have switched the original `dplyr` lab to `data import` to practice important data skills. 
+
+
+# Task 1
+
+Read Chapter 11 in `R for Data Science`: https://r4ds.had.co.nz/data-import.html#exercises-22 
+
+# Task 2
+While you are reading this Chapter, try to answer the following question:
+
+
+- Q1: What function would you use to read a file where fields were separated with “|”?
+
+Use read_delim() with | as the delimiter
+
+- Q2: Sometimes strings in a CSV file contain commas. To prevent them from causing problems they need to be surrounded by a quoting character, like `"` or `'`. By default, `read_csv()` assumes that the quoting character will be `"`. What argument to `read_csv()` do you need to specify to read the following text into a data frame?
+
+```{r}
+read_csv("x,y\n1,'a,b'", quote = "'")
+read_csv("x,y\n1,'a,b'")
+
+```
+Add the quote argument and set it to '
+
+- Q3: What’s the difference between `read_csv()` and `read_csv2()`?
+
+read_csv() reads comma delimited files, read_csv2 reads semicolon delimited files
+
+- Q4: What are the most common encodings used in Europe? What are the most common encodings used in Asia? Do some googling to find out
+
+Most common encodings used in Europe are Latin-1, UTF-8
+In Asia are BIG-5, GB, JIS

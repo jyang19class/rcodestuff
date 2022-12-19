@@ -1,0 +1,56 @@
+---
+title: 'STOR 520 Homework2: Use of Longleaf'
+output: pdf_document
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE, autodep=TRUE, cache.comments=TRUE)
+```
+
+Name:  Jeffrey Yang
+
+Collaborated with:  
+
+This homework is due on Nov. 22th at 11:55pm. You can collaborate with your classmates, but you must identify their names above, and you must submit **your own** homework as a PDF file on Sakai.
+
+
+**This week's agenda**: Use of Ondemand, and Longleaf cluster
+
+Use of ondemand and longleaf cluster
+===
+This homework is to demonstrate that you can use ondemand service or longleaf cluster to run your code. Note that you will need to request a cluster account if you havn't done this. See more details here: https://its.unc.edu/research-computing/request-a-cluster-account/
+
+
+Run `Ondemand.R` using ondemand.
+===
+
+- First login to UNC ondemand (https://ondemand.rc.unc.edu/pun/sys/dashboard). Note that if you are no on campus, you need to connect to UNC's VPN (https://ccinfo.unc.edu/start-here/secure-access-on-and-off-campus/).
+
+- Next, you have to upload `Ondemand.R` to your home directory in longleaf.  Note that here, I have done it for you (I have upload this file to `/pine/scr/z/z/zz10c/STOR520`). 
+
+
+- Through the `interactive apps` menu, you can  launch an RStudio server (R-4.X.X) on a cluster node. Wait for sometime and referesh your ondemand website, you should be able to see `Connect to Rstudio Server' bottom. Click it and your Rstudio running in one of the longleaf cluster node will be launched.  
+
+- Now you set your working directory. To access the `Ondemand.R` in `/pine/scr/z/z/zz10c`, we run `setwd('/pine/scr/z/z/zz10c/STOR520')` in the Rstudio console. 
+
+- At last, run `Ondemand.R` and take a screenshot. Insert your screenshot here to show you have finished this issue. 
+
+![alt](C:/Users/jyang19/Documents/addhw1.png)
+
+
+ Submit `Computing_Cost.R` to longleaf cluster nodes and collect results.
+ 
+![text](C:/Users/jyang19/Pictures/Screenshots/Screenshot-74.png)
+===
+
+- If you are using MacOS, open you terminal and type `ssh ONEY@longleaf.unc.edu` and input your ONEY password. This allows to login to a longleaf login node. If you are using Windows, you might need to download `MobaXterm`. (The latest Windows Command Prompt (cmd.ext) should support `ssh`. In this case, you don't need to download `MobaXterm`).
+
+- Next, use your favorite sfpt software, or ondemand `file` menu to upload `Computing_Cost.R` and `jobsubmission.sh` to your home folder. Note that I already uploaded these files to my folder and set that folder to be readable for everyone. So if you can't figure out how to upload files, you can use mine in `/proj/STOR/zz10c/STOR520` (meaning nothing need to done for this step). 
+
+- If you decided to upload `Computing_Cost.R` and `jobsubmission.sh` to your home folder, modify `Rscript --vanilla --verbose /proj/STOR/zz10c/STOR520/Computing_Cost.R > slurm-${SLURM_JOBID}.Rout 2>&1` in `jobsubmission.sh` to fix the path. Now, this jobsubmission file is submitting `/proj/STOR/zz10c/STOR520/Computing_Cost.R` for running. 
+
+- At last, type `sbatch jobsubmission.sh` in your terminal to submit a job to longleaf node to run. After about 1 min, you should finish the running. If you type the shell command `ls`, you will see three new files `mydata.Rdata` (saved by the Rscript `Computing_Cost.R`), `slurm-xxxx.Rout` (output by R), and `slurm-xx.out` (output by the schuduler slurm). 
+
+Take a screenshot containing these files and insert the screenshot here to indicate you have done this problem. 
+
+![text](C:/Users/jyang19/Pictures/Screenshots/addhw1-1.png)

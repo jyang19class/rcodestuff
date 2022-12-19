@@ -1,0 +1,93 @@
+---
+title: "STOR 520 Homework3: Neural Networks"
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE, autodep=TRUE, cache.comments=TRUE)
+```
+
+Name:  Jeffrey Yang
+
+Collaborated with:  
+
+This homework is due on Nov. 29th at 11:55pm. You can collaborate with your classmates, but you must identify their names above, and you must submit **your own** homework as a PDF file on Sakai.
+
+
+**This week's agenda**: Install Tensorflow and run a simple example.
+
+
+
+Tensorflow
+===
+This homework is to demonstrate that you can use tensorflow to train neural network models. You can follow this tutorial on installation: https://tensorflow.rstudio.com/installation/. The most important step is that you have **a working installation of [Anaconda](https://www.anaconda.com/products/individual)**. Note that I have two computers, it was super easy to set up the tensorflow in one computer and super hard to set up in the other. It's find that you failed in setting up the tensorflow in your computer. But you need to try and describe why you failed. 
+
+After installation, remove the `eval=FALSE` option and try to compile the following r code:
+
+```{r }
+library(tensorflow)
+library(keras)
+
+#load the data and normalize the data into [0,1]
+mnist <- dataset_mnist()
+mnist$train$x <- mnist$train$x/255
+mnist$test$x <- mnist$test$x/255
+
+#show the imaging data
+par(mfrow=c(2,3), mar=c(2,2,2,0.5))
+clockwise90 = function(a) { t(a[nrow(a):1,]) } # Handy rotate function
+for (i in 1:6)
+{
+  image(clockwise90(mnist$train$x[i,,]))
+}
+```
+
+Now, let's use Keras to define a simple NN model with three hiden layers
+
+```{r}
+model <- keras_model_sequential() %>% 
+  layer_flatten(input_shape = c(28, 28)) %>% 
+  layer_dense(units = 128, activation = "relu") %>% 
+  layer_dense(units = 128, activation = "relu") %>% 
+  layer_dropout(0.3) %>% 
+  layer_dense(10, activation = "softmax")
+
+summary(model)
+```
+
+
+The next step after building the model is to compile it. It’s at compile time that we define what loss will be optimized and what optimizer will be used.
+
+```{r}
+model %>% 
+  compile(
+    loss = "sparse_categorical_crossentropy",
+    optimizer = "adam",
+    metrics = "accuracy"
+  )
+
+#now let's fit the model
+model %>% 
+  fit(
+    x = mnist$train$x, y = mnist$train$y,
+    epochs = 8,
+    validation_split = 0.3,
+    verbose = 2)
+
+predictions <- predict(model, mnist$test$x)
+head(predictions, 2)
+```
+
+```{r}
+model %>% 
+  evaluate(mnist$test$x, mnist$test$y, verbose = 0)
+```
+QUESTION: 
+
+- If you successfully install the tensorflow, what's the final accuracy of your trained model on the `mnist$test` data?
+
+The final accuracy is about 97.28%
+
+- If you have trouble to install the tensorflow and use it in R, what steps did you do for debugging and why you think you failed? 
+
+I didn't have much trouble. If I did I would just read the error and google it.
+

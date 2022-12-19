@@ -1,0 +1,787 @@
+---
+title: "Exploratory Data Analysis"
+author: "STOR 320.02 Group 2 (Ex: STOR 320.02 Group 12)"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+
+library(R.matlab)
+
+# Import Data Below
+# read_csv()
+##Basically, I converted the 3 dimensional array in TNPCA_Coeff_HCP_Structural_Connectome.mat to a 2D data frame
+  #and added the subject IDs
+
+#read in matlab file:
+setwd("~/Final Project")
+TCPCA_Coeff_St <- readMat("TNPCA_Coeff_HCP_Structural_Connectome.mat")
+
+#Pull Subject IDs and assign to matrix subID
+subID <- TCPCA_Coeff_St$sub.id 
+
+##making empty matrix to fill in with PCA coeff and subID
+n=60
+Empty <- matrix(data=0, nrow=1065, ncol = 61)
+
+#set column 1 to subject IDs
+Empty[,1]=subID  
+
+##For loop that pulls each of the 60 vectors in PCA.Coeff and makes them each a column in empty matrix made above
+##So for PCA.Coeff, the original dimensions were 1x1065(the # of subjects)x60(K=60, so 60 PC scores)
+##This loop turns that^ into a matrix that is 1065(the number of subjects)x61(subject ID + 60 PC scores)
+for (i in 1:n) {
+  nam <- paste("PCA", i,sep="") #this makes the variable names PCA1, PCA2, PCA#, etc
+  Empty[,i+1] = assign(nam, as.matrix(TCPCA_Coeff_St$PCA.Coeff[,,i])) #This pulls each PCA column, assigns it a name, and puts it in the matrix
+}
+
+##So now we have a matrix with the subject ID #s and all the PC scores for each K component
+#It is missing all column names though
+Empty 
+
+##making the vector of column names to add to the data frame at the end
+Colnames= rep(NA, 60) #Make empty list to fill in with column names
+Colnames[1]="Subject" #Assign first column name "Subject"
+
+## for loop that makes characters "PCA1" thru "PCA60" and adds them to Colnames vector
+for (i in 1:length(Colnames)) {
+Colnames[i+1] <- paste("PCA", i, sep = "")
+}
+
+Colnames ##61 characters long: "Subject", "PCA1", "PCA2", etc
+
+##convert matrix made above to data frame
+TNPCA_Coeff_HCP_Str <- data.frame(Empty) 
+
+##adds column names based off the Colnames vector to final data frame
+colnames(TNPCA_Coeff_HCP_Str) <- Colnames
+
+#Final Data Frame
+TNPCA_Coeff_HCP_Str
+
+save(TNPCA_Coeff_HCP_Str, file = "TNPCA_Coeff_HCP_Str.RData")
+
+
+setwd("~/Final Project")
+table2_hcp = read_csv("table2_hcp.csv")
+table1_hcp = read_csv("table1_hcp.csv")
+#Data Frames with Traits
+New_data1 = TNPCA_Coeff_HCP_Str %>% 
+  left_join(table1_hcp, by = "Subject")
+
+Dataset_all = New_data1 %>%
+  left_join(table2_hcp, by = "Subject")
+
+Dataset_traits = Dataset_all[,c(1,62:833)]
+
+
+##I've double checked with the file in matlab that the numbers match up and nothing got lost
+##It looks fine and the dimensions are correct, but it would probably be a good idea to run through this code 
+  #And make sure it looks okay to you all as well
+
+##If we decide we want the functional data as well it will be easy to generate the same way
+
+head(Dataset_all)
+
+```
+
+
+```{r}
+setwd("~/Final Project")
+table2 = read_csv("table2_hcp.csv")
+head(table2)
+table1 = read_csv("table1_hcp.csv")
+head(table1)
+joined_table1_2= left_join(table1, table2, by="Subject")
+
+joined_table1_2[, grep(pattern="marijuana", colnames(joined_table1_2))]
+
+```
+
+# Creator: Ashley Morrison 
+
+### Q1: Levels of alcohol use was found to be reflected in the structural connectome. Does the structural connectome also reflect different levels of drug use if we look at the first two principal components?
+
+```{r}
+#Making drug use data subset to plot first and second principal components to look for clustering between groups that use drugs heavily vs groups that don't use drugs:
+#install.packages("ggplot2")
+Drug_use <- Dataset_all %>% 
+  select(., Subject, PCA1, PCA2, PCA3, SSAGA_Mj_Times_Used,SSAGA_Times_Used_Hallucinogens,SSAGA_Times_Used_Opiates,SSAGA_Times_Used_Sedatives,SSAGA_Times_Used_Stimulants)
+
+head(Drug_use,3)
+
+##When all 1000+ subjects are plotted, it is impossible to detect any patterns
+Mj_use_plot <- ggplot(Dataset_all, aes(PCA1, PCA2, colour = SSAGA_Mj_Times_Used)) + 
+  geom_point()
+
+##So pick just 100 subjects representing heavy (5) and no use (0) to compare for each drug:
+
+##Marijuana
+Mj_reduced <- Drug_use %>% 
+  filter(.,(SSAGA_Mj_Times_Used == 5) | (SSAGA_Mj_Times_Used == 1)) %>% 
+  arrange(., desc(SSAGA_Mj_Times_Used)) %>% 
+  slice(c(1:101,210:310))
+
+Mj_use_plot_2 <- ggplot(Mj_reduced, aes(PCA1, PCA2, colour = SSAGA_Mj_Times_Used)) + 
+  geom_point() +
+  ggtitle("Marijuana use, high (5) vs none(0)")
+
+Mj_use_plot_2
+
+##There are no visible clusters when plotting marijuana use
+
+##Hallucinogens
+Hal_reduced <- Drug_use %>% 
+  filter(.,(SSAGA_Times_Used_Hallucinogens == 5) | (SSAGA_Times_Used_Hallucinogens == 0)) %>% 
+  arrange(., desc(SSAGA_Times_Used_Hallucinogens)) %>% 
+  slice(c(1:133))
+ 
+Hal_use_plot <- ggplot(Hal_reduced, aes(PCA1, PCA2, colour = SSAGA_Times_Used_Hallucinogens)) + 
+  geom_point() +
+  ggtitle("Hallucinogen use, high (5) vs none(0)")
+
+##Opiates
+Opiates_reduced <- Drug_use %>% 
+  filter(.,(SSAGA_Times_Used_Opiates == 5) | (SSAGA_Times_Used_Opiates == 0)) %>% 
+  arrange(., desc(SSAGA_Times_Used_Opiates)) %>% 
+  slice(c(1:145))
+
+Op_use_plot <- ggplot(Opiates_reduced, aes(PCA1, PCA2, colour = SSAGA_Times_Used_Opiates)) + 
+  geom_point()+
+  ggtitle("Opiate use, high (5) vs none(0)")
+
+Op_use_plot
+
+##Sedatives
+Sed_reduced <- Drug_use %>% 
+  filter(.,(SSAGA_Times_Used_Sedatives == 5) | (SSAGA_Times_Used_Sedatives == 0)) %>% 
+  arrange(., desc(SSAGA_Times_Used_Sedatives)) %>% 
+  slice(c(1:135))
+
+Sed_use_plot <- ggplot(Sed_reduced, aes(PCA1, PCA2, colour = SSAGA_Times_Used_Sedatives)) + 
+  geom_point()+
+  ggtitle("Sedative use, high (5) vs none(0)")
+
+Sed_use_plot
+
+##Stimulants
+Stim_reduced <- Drug_use %>% 
+  filter(.,(SSAGA_Times_Used_Stimulants == 5) | (SSAGA_Times_Used_Stimulants == 0)) %>% 
+  arrange(., desc(SSAGA_Times_Used_Stimulants)) %>%
+  slice(c(1:140))
+
+Stim_use_plot <- ggplot(Stim_reduced, aes(PCA1, PCA2, colour = SSAGA_Times_Used_Stimulants)) + 
+  geom_point() +
+  ggtitle("Stimulant use, high (5) vs none(0)")
+
+Stim_use_plot
+
+##No plot shows obvious clustering between no and heavy drug use, meaning that the structural connectome shows no correlation with drug use when looking at the first two principle components and frequency of drug use alone.
+
+##To continue looking at this, we will need to add in the third component, like the Dr. Zhang's paper
+
+```
+
+### Q2: Does the Structural Connectome reflect different levels of drug use if we add the 3rd PC?
+
+```{r}
+##Load in packages for interactive 3D scatter plot
+library(tidyverse)
+install.packages("plotly")
+library(plotly)
+
+##Plot the first three components vs heavy and no drug use for each type of drug:
+##Marijuana
+MJ_use_third <- plot_ly(
+  Mj_reduced, x= Mj_reduced$PCA1, y= Mj_reduced$PCA2, z= Mj_reduced$PCA3,
+  color = Mj_reduced$SSAGA_Mj_Times_Used, colors = c('#BF382A', '#0C4B8E')
+) %>% 
+  add_markers() %>% 
+  layout(
+    title = "Marijuana no use (0) vs high use (5)",
+    scene = list(xaxis = list(title = 'PCA1'),
+                 yaxix = list(title = 'PCA2'),
+                 zaxis = list(title = 'PCA3'))
+  )
+
+##Hallucinogens
+Hal_use_third <- plot_ly(
+  Hal_reduced, x= Hal_reduced$PCA1, y= Hal_reduced$PCA2, z= Hal_reduced$PCA3,
+  color = Hal_reduced$SSAGA_Times_Used_Hallucinogens, colors = c('#BF382A', '#0C4B8E')
+) %>% 
+  add_markers() %>% 
+  layout(
+    title = "Hallucinogens no use (0) vs high use (5)",
+    scene = list(xaxis = list(title = 'PCA1'),
+                 yaxix = list(title = 'PCA2'),
+                 zaxis = list(title = 'PCA3'))
+  )
+Hal_use_third
+
+##Opiates
+Op_use_third <- plot_ly(
+  Opiates_reduced, x= Opiates_reduced$PCA1, y= Opiates_reduced$PCA2, z= Opiates_reduced$PCA3,
+  color = Opiates_reduced$SSAGA_Times_Used_Opiates, colors = c('#BF382A', '#0C4B8E')
+) %>% 
+  add_markers() %>% 
+  layout(
+    title = "Opiates no use (0) vs high use (5)",
+    scene = list(xaxis = list(title = 'PCA1'),
+                 yaxix = list(title = 'PCA2'),
+                 zaxis = list(title = 'PCA3'))
+  )
+Op_use_third
+
+##Sedatives
+Sed_use_third <- plot_ly(
+  Sed_reduced, x= Sed_reduced$PCA1, y= Sed_reduced$PCA2, z= Sed_reduced$PCA3,
+  color = Sed_reduced$SSAGA_Times_Used_Sedatives, colors = c('#BF382A', '#0C4B8E')
+) %>% 
+  add_markers() %>% 
+  layout(
+    title = "Sedative no use (0) vs high use (5)",
+    scene = list(xaxis = list(title = 'PCA1'),
+                 yaxix = list(title = 'PCA2'),
+                 zaxis = list(title = 'PCA3'))
+  )
+Sed_use_third
+
+##Stimulants
+Stim_use_third <- plot_ly(
+  Stim_reduced, x= Stim_reduced$PCA1, y= Stim_reduced$PCA2, z= Stim_reduced$PCA3,
+  color = Stim_reduced$SSAGA_Times_Used_Stimulants, colors = c('#BF382A', '#0C4B8E')
+) %>% 
+  add_markers() %>% 
+  layout(
+    title = "Stimulant no use (0) vs high use (5)",
+    scene = list(xaxis = list(title = 'PCA1'),
+                 yaxix = list(title = 'PCA2'),
+                 zaxis = list(title = 'PCA3'))
+  )
+Stim_use_third
+
+##There is still no clear clustering between groups.
+#To further examine this question, we may need to look into other factors, such as age of drug use, or combinations of different drugs used. 
+
+```
+
+# Interpreter: Jeffrey Yang
+
+### Q1: How do PC scores compare between people who drink and different age groups?
+
+```{r}
+
+DatasetAge = Dataset_all %>% drop_na("Age")
+DatasetAge = Dataset_all %>% drop_na("Total_Drinks_7days")
+SelectedPCA = Dataset_all[,c(2:61, 754)]
+
+ggplot(DatasetAge, aes(Age)) + geom_bar()
+sum(DatasetAge$Age == "36+")
+```
+
+```{r}
+
+ggplot(Dataset_all, aes(Total_Drinks_7days, PCA1)) + geom_point(position = position_jitter(width = 0.1, height = 0.1), aes(color=Age))
+
+ggplot(Dataset_all, aes(Total_Drinks_7days, PCA2)) + geom_point(position = position_jitter(width = 0.1, height = 0.1), aes(color=Age))
+
+ggplot(Dataset_all, aes(Total_Drinks_7days, PCA3)) + geom_point(position = position_jitter(width = 0.1, height = 0.1), aes(color=Age))
+
+ggplot(Dataset_all, aes(Total_Drinks_7days, PCA4)) + geom_point(position = position_jitter(width = 0.1, height = 0.1), aes(color=Age))
+
+ggplot(Dataset_all, aes(Total_Drinks_7days, PCA5)) + geom_point(position = position_jitter(width = 0.1, height = 0.1), aes(color=Age))
+
+#DrinksLM = lm(Total_Drinks_7days~., SelectedPCA)
+#summary(DrinksLM)
+#residuals = resid(DrinksLM)
+#plot(predict(DrinksLM), residuals)
+#abline(h=0)
+```
+
+### Q2: Is there a significant difference between age groups and smoking/drinking habits?
+
+```{r}
+
+ggplot(Dataset_traits, aes(Total_Drinks_7days)) + geom_density(aes(color = Age))
+ggplot(Dataset_traits, aes(Age, Total_Drinks_7days)) + geom_boxplot()
+
+ggplot(Dataset_traits, aes(Num_Days_Drank_7days)) + geom_density(aes(color = Age))
+ggplot(Dataset_traits, aes(Age, Num_Days_Drank_7days)) + geom_boxplot()
+
+ggplot(Dataset_traits, aes(Total_Any_Tobacco_7days)) + geom_density(aes(color = Age))
+ggplot(Dataset_traits, aes(Age, Total_Any_Tobacco_7days)) + geom_boxplot()
+
+```
+
+# Orator: Isabella Hastings
+
+### Q1: Do age and alcohol consumption have a compounding effect on BMI?
+
+```{r}
+# 0.1 is strong correlation, significant for human data
+alc.test=na.omit(Dataset_traits[,c("SSAGA_Alc_12_Frq", "SSAGA_Times_Used_Illicits", "SSAGA_Times_Used_Cocaine", "SSAGA_Times_Used_Hallucinogens", "SSAGA_Times_Used_Opiates", "SSAGA_Times_Used_Sedatives", "SSAGA_Times_Used_Stimulants")])
+cor(alc.test$SSAGA_Alc_12_Frq,alc.test$SSAGA_Times_Used_Illicits)
+cor(alc.test$SSAGA_Alc_12_Frq,alc.test$SSAGA_Times_Used_Cocaine)
+cor(alc.test$SSAGA_Alc_12_Frq,alc.test$SSAGA_Times_Used_Hallucinogens)
+cor(alc.test$SSAGA_Alc_12_Frq,alc.test$SSAGA_Times_Used_Opiates)
+cor(alc.test$SSAGA_Alc_12_Frq,alc.test$SSAGA_Times_Used_Sedatives)
+cor(alc.test$SSAGA_Alc_12_Frq,alc.test$SSAGA_Times_Used_Stimulants)
+
+# all negative correlations
+# none are that strong, would be worth analyzing illicits and hallucinogens
+
+# plots:
+alc.test %>%
+  ggplot(mapping=aes(x=SSAGA_Alc_12_Frq, y=SSAGA_Times_Used_Illicits))+geom_col()
+alc.test %>%
+  ggplot(mapping=aes(x=SSAGA_Alc_12_Frq, y=SSAGA_Times_Used_Cocaine))+geom_col()
+alc.test %>%
+  ggplot(mapping=aes(x=SSAGA_Alc_12_Frq, y=SSAGA_Times_Used_Hallucinogens))+geom_col()
+alc.test %>%
+  ggplot(mapping=aes(x=SSAGA_Alc_12_Frq, y=SSAGA_Times_Used_Opiates))+geom_col()
+alc.test %>%
+  ggplot(mapping=aes(x=SSAGA_Alc_12_Frq, y=SSAGA_Times_Used_Sedatives))+geom_col()
+alc.test %>%
+  ggplot(mapping=aes(x=SSAGA_Alc_12_Frq, y=SSAGA_Times_Used_Stimulants))+geom_col()
+```
+
+```{r}
+MJ.test=na.omit(Dataset_traits[,c("SSAGA_Mj_Times_Used", "SSAGA_Times_Used_Illicits", "SSAGA_Times_Used_Cocaine", "SSAGA_Times_Used_Hallucinogens", "SSAGA_Times_Used_Opiates", "SSAGA_Times_Used_Sedatives", "SSAGA_Times_Used_Stimulants")])
+cor(MJ.test$SSAGA_Mj_Times_Used,MJ.test$SSAGA_Times_Used_Illicits)
+cor(MJ.test$SSAGA_Mj_Times_Used,MJ.test$SSAGA_Times_Used_Cocaine)
+cor(MJ.test$SSAGA_Mj_Times_Used,MJ.test$SSAGA_Times_Used_Hallucinogens)
+cor(MJ.test$SSAGA_Mj_Times_Used,MJ.test$SSAGA_Times_Used_Opiates)
+cor(MJ.test$SSAGA_Mj_Times_Used,MJ.test$SSAGA_Times_Used_Sedatives)
+cor(MJ.test$SSAGA_Mj_Times_Used,MJ.test$SSAGA_Times_Used_Stimulants)
+# looks like it is decent--what about compared to alcohol? highest correlated to illicits
+# hallucinogens are also significantly high
+# overall, there is a greater correlation of mj use to hard drug use compared to alcohol use: we could consider mj a stronger gateway drug compared to alcohol
+
+#plots:
+MJ.test %>%
+  ggplot(mapping=aes(x=SSAGA_Mj_Times_Used, y=SSAGA_Times_Used_Illicits))+geom_col()
+MJ.test %>%
+  ggplot(mapping=aes(x=SSAGA_Mj_Times_Used, y=SSAGA_Times_Used_Cocaine))+geom_col()
+MJ.test %>%
+  ggplot(mapping=aes(x=SSAGA_Mj_Times_Used, y=SSAGA_Times_Used_Hallucinogens))+geom_col()
+MJ.test %>%
+  ggplot(mapping=aes(x=SSAGA_Mj_Times_Used, y=SSAGA_Times_Used_Opiates))+geom_col()
+MJ.test %>%
+  ggplot(mapping=aes(x=SSAGA_Mj_Times_Used, y=SSAGA_Times_Used_Sedatives))+geom_col()
+MJ.test %>%
+  ggplot(mapping=aes(x=SSAGA_Mj_Times_Used, y=SSAGA_Times_Used_Stimulants))+geom_col()
+
+# there is a clear direct correlation with increasing alcohol consumption and increasing frequency of drug use
+```
+
+### Q2: Does BMI or alcohol consumption have a greater effect on sleep quality?
+
+```{r}
+str.test=na.omit(Dataset_traits[,c("Strength_AgeAdj", "SSAGA_Times_Used_Illicits", "SSAGA_Times_Used_Cocaine", "SSAGA_Times_Used_Hallucinogens", "SSAGA_Times_Used_Opiates", "SSAGA_Times_Used_Sedatives", "SSAGA_Times_Used_Stimulants")])
+cor(str.test$Strength_AgeAdj,str.test$SSAGA_Times_Used_Illicits)
+cor(str.test$Strength_AgeAdj,str.test$SSAGA_Times_Used_Cocaine)
+cor(str.test$Strength_AgeAdj,str.test$SSAGA_Times_Used_Hallucinogens)
+cor(str.test$Strength_AgeAdj,str.test$SSAGA_Times_Used_Opiates)
+cor(str.test$Strength_AgeAdj,str.test$SSAGA_Times_Used_Sedatives)
+cor(str.test$Strength_AgeAdj,str.test$SSAGA_Times_Used_Stimulants)
+
+# looks like greater strength is associated with greater hard drug use compared to greater endurance, but here opiates have highest correlation instead of hallucinogens
+
+#plots:
+str.test%>%
+ggplot(mapping=aes(x=SSAGA_Times_Used_Illicits, y=Strength_AgeAdj))+geom_point()
+str.test%>%
+ggplot(mapping=aes(x=SSAGA_Times_Used_Cocaine, y=Strength_AgeAdj))+geom_point()
+str.test%>%
+ggplot(mapping=aes(x=SSAGA_Times_Used_Hallucinogens, y=Strength_AgeAdj))+geom_point()
+str.test%>%
+ggplot(mapping=aes(x=SSAGA_Times_Used_Opiates, y=Strength_AgeAdj))+geom_point()
+str.test%>%
+ggplot(mapping=aes(x=SSAGA_Times_Used_Sedatives, y=Strength_AgeAdj))+geom_point()
+str.test%>%
+ggplot(mapping=aes(x=SSAGA_Times_Used_Stimulants, y=Strength_AgeAdj))+geom_point()
+
+
+# showing hallucinogens have greatest frequency, cocaine and sedatives are lowest
+```
+
+```{r}
+End.test=na.omit(Dataset_traits[,c("Endurance_AgeAdj", "SSAGA_Times_Used_Illicits", "SSAGA_Times_Used_Cocaine", "SSAGA_Times_Used_Hallucinogens", "SSAGA_Times_Used_Opiates", "SSAGA_Times_Used_Sedatives", "SSAGA_Times_Used_Stimulants")])
+
+cor(End.test$Endurance_AgeAdj,End.test$SSAGA_Times_Used_Illicits)
+cor(End.test$Endurance_AgeAdj,End.test$SSAGA_Times_Used_Cocaine)
+cor(End.test$Endurance_AgeAdj,End.test$SSAGA_Times_Used_Hallucinogens)
+cor(End.test$Endurance_AgeAdj,End.test$SSAGA_Times_Used_Opiates)
+cor(End.test$Endurance_AgeAdj,End.test$SSAGA_Times_Used_Sedatives)
+cor(End.test$Endurance_AgeAdj,End.test$SSAGA_Times_Used_Stimulants)
+
+# not much of a correlation between endurance testing and hard drug use, but there is a stronger correlations between hard drug use and strength compared to endurance
+
+#plots:
+End.test%>%
+ggplot(mapping=aes(x=SSAGA_Times_Used_Illicits, y=Endurance_AgeAdj))+geom_point()
+End.test%>%
+ggplot(mapping=aes(x=SSAGA_Times_Used_Cocaine, y=Endurance_AgeAdj))+geom_point()
+End.test%>%
+ggplot(mapping=aes(x=SSAGA_Times_Used_Hallucinogens, y=Endurance_AgeAdj))+geom_point()
+End.test%>%
+ggplot(mapping=aes(x=SSAGA_Times_Used_Opiates, y=Endurance_AgeAdj))+geom_point()
+End.test%>%
+ggplot(mapping=aes(x=SSAGA_Times_Used_Sedatives, y=Endurance_AgeAdj))+geom_point()
+End.test%>%
+ggplot(mapping=aes(x=SSAGA_Times_Used_Stimulants, y=Endurance_AgeAdj))+geom_point()
+
+# clearly greatest use is with hallucinogens, same as strength. looks like cocaine has the greatest spread for endurance. also appears that overall, regardless of drug use or frequency of use, there are outliers with high endurance scores
+```
+
+# Orator: Helen Johnston
+
+### Q1: Are people who drink/smoke more often more likely to score poorly on the processing speed test? 
+
+```{r}
+#Here I am creating new data frame with all relevant variables so I can use the step wise selection procedure to see in any of the drinking and/or smoking variables have an impact on processing speed tests
+
+Selection=Dataset_traits[,c("ProcSpeed_Unadj",
+                            "SSAGA_Alc_D4_Dp_Sx",
+               "SSAGA_Alc_D4_Ab_Sx",
+               "SSAGA_Alc_12_Drinks_Per_Day",
+               "SSAGA_Alc_12_Frq",
+               "SSAGA_Alc_12_Frq_5plus",
+               "SSAGA_Alc_12_Frq_Drk",
+               "SSAGA_Alc_12_Max_Drinks",
+               "SSAGA_Alc_Age_1st_Use",
+               "SSAGA_Alc_Hvy_Drinks_Per_Day",
+               "SSAGA_Alc_Hvy_Frq",
+               "SSAGA_Alc_Hvy_Frq_5plus",
+               "SSAGA_Alc_Hvy_Frq_Drk",
+               "SSAGA_Alc_Hvy_Max_Drinks",
+               "SSAGA_TB_Age_1st_Cig", 
+               "SSAGA_TB_Max_Cigs",
+               "SSAGA_TB_Reg_CPD",
+               "SSAGA_TB_Yrs_Smoked",
+               "Times_Used_Any_Tobacco_Today",
+"Avg_Weekend_Any_Tobacco_7days",
+"Total_Cigarettes_7days",
+"Avg_Weekend_Cigarettes_7days",
+"Num_Days_Used_Any_Tobacco_7days"
+               )]
+
+#Dropping all na values from selection and creating a null and full model to begin stepwise selection procedure
+Selection=na.omit(Selection)
+NullA=lm(ProcSpeed_Unadj~1, data=Selection)
+
+FullA=lm(ProcSpeed_Unadj~
+               SSAGA_Alc_D4_Dp_Sx+
+               SSAGA_Alc_D4_Ab_Sx+
+               SSAGA_Alc_12_Drinks_Per_Day+ 
+               SSAGA_Alc_12_Frq+
+               SSAGA_Alc_12_Frq_5plus+
+               SSAGA_Alc_12_Frq_Drk+
+               SSAGA_Alc_12_Max_Drinks+
+               SSAGA_Alc_Age_1st_Use+
+               SSAGA_Alc_Hvy_Drinks_Per_Day+
+               SSAGA_Alc_Hvy_Frq+
+               SSAGA_Alc_Hvy_Frq_5plus+
+               SSAGA_Alc_Hvy_Frq_Drk+
+               SSAGA_Alc_Hvy_Max_Drinks+
+               SSAGA_TB_Age_1st_Cig+
+           SSAGA_TB_Max_Cigs+
+           SSAGA_TB_Reg_CPD+
+           SSAGA_TB_Yrs_Smoked+
+           Times_Used_Any_Tobacco_Today+
+Avg_Weekend_Any_Tobacco_7days+
+Total_Cigarettes_7days+
+Avg_Weekend_Cigarettes_7days+
+Num_Days_Used_Any_Tobacco_7days, 
+             data=Selection)
+
+MSEA=(summary(FullA)$sigma)^2
+
+step(NullA,scope=list(upper=FullA),scale=MSEA, trace = "FALSE")
+#Using stepwise selection with a full model (all categorical and ordinal variables concerning smoking and drinking) to find the best model to see if Alcohol use or cigarette use has an affect on the processing speed tests.
+
+```
+```{r}
+#Taking the best model from the step wise procedure-> it looks like the only preidctor that has an impact, with a p-value of 0.1(which is still a bit high), SSAGA_Alc_D4_Ab_Sx is the number of symptoms participant has of DSM4 Alcohol Abuse, so it is interesting but also makes sense that this has an impact on prepossessing speed. It does not look like tobacco affects processing speed.
+modQ2=lm(formula = ProcSpeed_Unadj ~ SSAGA_Alc_D4_Ab_Sx, data = Selection)
+summary(modQ2)
+```
+```{r}
+#Trying the same stepwise procedure above but with proccessing speed scores adjusted for age
+Selection2=Dataset_traits[,c("ProcSpeed_AgeAdj",
+                            "SSAGA_Alc_D4_Dp_Sx",
+               "SSAGA_Alc_D4_Ab_Sx",
+               "SSAGA_Alc_12_Drinks_Per_Day",
+               "SSAGA_Alc_12_Frq",
+               "SSAGA_Alc_12_Frq_5plus",
+               "SSAGA_Alc_12_Frq_Drk",
+               "SSAGA_Alc_12_Max_Drinks",
+               "SSAGA_Alc_Age_1st_Use",
+               "SSAGA_Alc_Hvy_Drinks_Per_Day",
+               "SSAGA_Alc_Hvy_Frq",
+               "SSAGA_Alc_Hvy_Frq_5plus",
+               "SSAGA_Alc_Hvy_Frq_Drk",
+               "SSAGA_Alc_Hvy_Max_Drinks",
+               "SSAGA_TB_Age_1st_Cig", 
+               "SSAGA_TB_Max_Cigs",
+               "SSAGA_TB_Reg_CPD",
+               "SSAGA_TB_Yrs_Smoked",
+               "Times_Used_Any_Tobacco_Today",
+"Avg_Weekend_Any_Tobacco_7days",
+"Total_Cigarettes_7days",
+"Avg_Weekend_Cigarettes_7days",
+"Num_Days_Used_Any_Tobacco_7days"
+               )]
+Selection2=na.omit(Selection2)
+NullA=lm(ProcSpeed_AgeAdj~1, data=Selection2)
+
+FullA=lm(ProcSpeed_AgeAdj~
+               SSAGA_Alc_D4_Dp_Sx+
+               SSAGA_Alc_D4_Ab_Sx+
+               SSAGA_Alc_12_Drinks_Per_Day+ 
+               SSAGA_Alc_12_Frq+
+               SSAGA_Alc_12_Frq_5plus+
+               SSAGA_Alc_12_Frq_Drk+
+               SSAGA_Alc_12_Max_Drinks+
+               SSAGA_Alc_Age_1st_Use+
+               SSAGA_Alc_Hvy_Drinks_Per_Day+
+               SSAGA_Alc_Hvy_Frq+
+               SSAGA_Alc_Hvy_Frq_5plus+
+               SSAGA_Alc_Hvy_Frq_Drk+
+               SSAGA_Alc_Hvy_Max_Drinks+
+               SSAGA_TB_Age_1st_Cig+
+           SSAGA_TB_Max_Cigs+
+           SSAGA_TB_Reg_CPD+
+           SSAGA_TB_Yrs_Smoked+
+           Times_Used_Any_Tobacco_Today+
+Avg_Weekend_Any_Tobacco_7days+
+Total_Cigarettes_7days+
+Avg_Weekend_Cigarettes_7days+
+Num_Days_Used_Any_Tobacco_7days, 
+             data=Selection2)
+
+MSEA=(summary(FullA)$sigma)^2
+
+step(NullA,scope=list(upper=FullA),scale=MSEA, trace = "FALSE")
+
+#Using step selection for the Age-adjusted scores, we can see this is the same linear model we received for the non age adjusted data
+```
+
+### Q2: To what extent do years of education have an effect on test scores (Table 1)?
+
+```{r}
+#Education variable is years of education completed. If it is less than <11 = 11 (did not complete high school); 12; 13; 14; 15; 16; 17+ = 17
+AAeduc=lm(SSAGA_Times_Used_Illicits~factor(SSAGA_Educ),data=Dataset_traits)
+summary(AAeduc)
+#When you look at a summary of this linear model, you can see that if the individual has  less than 11 years of education, the median of this sample has likely tried illegal drugs 1-2 times, as the intercept is 1, which means they hav tried an illegal drug 1-2 times. This intercept is significant, with a p-value of 0. If the induvidual has 12 years of education, the average sample is less likely to have tried drugs- the median value for this group is about 0.65 and this slope is significant as it have a p-value of 0.01. If the individual has an education of 16 to 17+ years, they are far less likely to have used illegal drugs even one time. This slope for 16 years of education is significant with a p-value of 0.01 and 17+ years has a p-value of 0.001.
+
+plot(SSAGA_Times_Used_Illicits~factor(SSAGA_Educ),data=Dataset_traits)
+
+B0 = summary(AAeduc)$coef[1,1] 
+B1 = summary(AAeduc)$coef[2,1] 
+
+curve(exp(B0)*x^(B1), add=TRUE, col='red')
+#From this plot, you can see that those with less than 11 years of education have an average population median that tries Illegal drugs on 1-2 instances. From the initial graph we have, it looks like the more education you have, the less likely it is that you will engage in illegal drug use.We would need to explore this further to see if there was any significant of education on drug use, as well as test the average illegal drug use per age group. 
+
+ggplot(data = Dataset_traits) +
+  aes(y = SSAGA_Times_Used_Illicits, x = SSAGA_Educ) +
+  geom_jitter()
+
+```
+
+# Deliverer: Varsha Sridhar
+
+### Q1: Does marijuana use and dependency have an effect on overall sleep quality? 
+
+```{r}
+#5
+#col 175
+#Sleep (Pittsburgh Sleep Questionnaire) Total Score
+#Alertness
+#Sleep (Pittsburgh Sleep Questionnaire)
+#PSQI_Score
+#Continuous
+#The total score across all items on the Pittsburgh Sleep Quality
+
+#col 86 
+#DSM Marijuana Dependence 
+#SSAGA_Mj_Ab_Dep
+#Binary 
+#Participant meets DSM criteria for Marijuana Dependence
+
+
+#col 85 
+#Ever used marijuana? 
+#Binary 
+#Ever used marijuana: no = 0; yes = 1
+#SSAGA_Mj_Use
+
+#col 88 
+#Times used marijuana 
+#SSAGA_Mj_Times_Used
+#Binary 
+#Times used marijuana: never used = 0; 1-5 = 1; 6-10 = 2; 11-25 = 3; 26-50 = 3; 51-100 = 3; 101-999 = 4; 1000-2000 = 5; >2000 = 5
+
+marijuana_dataset = Dataset_traits[,c("PSQI_Score", "SSAGA_Mj_Use", "SSAGA_Mj_Times_Used", "SSAGA_Mj_Ab_Dep")]
+marijuana_dataset = na.omit(marijuana_dataset)
+head(marijuana_dataset)
+
+
+summary(marijuana_dataset)
+marijuana_dataset %>%
+  ggplot(aes(x=SSAGA_Mj_Use, y=PSQI_Score)) + 
+  geom_point()
+
+marijuana_dataset %>%
+  ggplot(aes(x=SSAGA_Mj_Ab_Dep, y=PSQI_Score)) + 
+  geom_point()
+
+marijuana_dataset %>%
+  ggplot(aes(x=PSQI_Score, y=SSAGA_Mj_Times_Used)) + 
+  geom_point()
+
+
+ggplot(data = marijuana_dataset, mapping = aes(y = SSAGA_Mj_Times_Used, x= PSQI_Score))+
+geom_point() 
+
+
+marijuana_dataset %>%
+ count(SSAGA_Mj_Times_Used , PSQI_Score) %>% 
+ ggplot(mapping = aes(x =PSQI_Score , y =SSAGA_Mj_Times_Used )) + 
+	geom_tile(mapping = aes(fill = n))
+
+ggplot(data = marijuana_dataset, mapping = aes(x = PSQI_Score)) + 
+geom_freqpoly(mapping = aes(colour = SSAGA_Mj_Times_Used)) 
+```
+
+### Q2: Does cortical thickness of superior frontal cortex have any relationship with NIH Toolbox Pattern Comparison Processing Speed Test: Unadjusted Scale Score? 
+
+```{r}
+#FS_R_Superiorfrontal_Thck
+#FS_L_Superiorfrontal_Thck
+#FS_R_Amygdala_Vol
+#FS_R_Hippo_Vol
+#ProcSpeed_Unadj 
+# NIH Toolbox Pattern Comparison Processing Speed Test (PCT): Unadjusted Scale Score. Participant score is normed to those in the entire NIH Toolbox Normative Sample (18 and older), regardless of age or any other variable, where a score of 100 indicates performance that was at the national average and a score of 115 or 85, indicates performance 1 SD above or below the national average. The PCT is a measure of speed of processing, which is considered a 'fluid ability' because it steadily improves (time to complete task decreases) throughout childhood and adolescence, then begins to decline in adulthood. This test for ages 7-85 asks participants to discern whether two side-by-side pictures are the same or not. The items are designed to be simple to most purely measure processing speed.
+
+Process_speed_volume_dataset = Dataset_all[,c("FS_R_Superiorfrontal_Thck", "FS_L_Superiorfrontal_Thck", "ProcSpeed_Unadj")]
+head(Process_speed_volume_dataset)
+Process_speed_volume_dataset = na.omit(Process_speed_volume_dataset)
+
+summary(Process_speed_volume_dataset)
+
+
+Summary_R_BMI=lm(FS_R_Superiorfrontal_Thck~ProcSpeed_Unadj, data=Process_speed_volume_dataset)
+Summary_L_BMI=lm(FS_L_Superiorfrontal_Thck~ProcSpeed_Unadj, data=Process_speed_volume_dataset)
+
+summary(Summary_R_BMI)
+summary(Summary_L_BMI)
+
+
+Process_speed_volume_dataset %>%
+  ggplot(aes(x=FS_R_Superiorfrontal_Thck, y=ProcSpeed_Unadj)) + 
+  geom_point() 
+
+Process_speed_volume_dataset %>%
+  ggplot(aes(x=FS_L_Superiorfrontal_Thck, y=ProcSpeed_Unadj)) + 
+  geom_point() 
+
+```
+
+# Follow-up Questions
+
+### New Questions Based Off Initial Investigation
+
+- Q1: What patterns exist between areas of the brain and alcohol, mj, and hard drug use? 
+- Q2: Do those areas/results change with age?
+- Q3: Does age of initial drug use have a larger effect on the structural connectome compared to just drug use alone? 
+- Q4: Can we use mj/hard drug/alcohol use as a predictor for age?
+
+
+### Investigation of Follow-up Questions
+
+GIVE WHAT 2 QUESTIONS YOU ATTEMPTED TO INVESTIGATE FURTHER IN COMPLETE SENTENCES (*Example:* Our group decided to investigate Q2 and Q4 in further detail.)
+
+SHOW AT LEAST 2 TABLES OR FIGURES BELOW THAT EXPLORE ANSWERS FOR THE QUESTIONS YOU ARE INVESTIGATING FURTHER.
+
+```{r}
+# Our group decided to investigate Q3 and Q4 
+##Question 3, Does age of initial drug use have a larger effect on the structural connectome compared to just drug use alone?
+
+#Generate data set with the addition of the age marijuana was first used to see if early use has an effect on structural connectome development:
+
+Drug_use_with_age <- Dataset_all %>% 
+  select(., Subject, PCA1, PCA2, PCA3, SSAGA_Mj_Times_Used,SSAGA_Times_Used_Hallucinogens,SSAGA_Times_Used_Opiates,SSAGA_Times_Used_Sedatives,SSAGA_Times_Used_Stimulants,SSAGA_Mj_Age_1st_Use)
+
+head(Drug_use_with_age)
+
+summary(Drug_use_with_age)
+
+##Generating a graph that shows only people who use marijuana heavily to see if there is clustering based on age first used:
+#Age at first marijuana use: <=14 = 1; 15-17 = 2; 18-20 = 3; >=21 = 4
+
+MJ_Drug_use_with_age <- Drug_use_with_age %>% 
+  filter(.,(SSAGA_Mj_Times_Used == 5))
+
+##Plotting the first three components
+MJ_use_by_age_3rd <- plot_ly(
+  MJ_Drug_use_with_age, x= MJ_Drug_use_with_age$PCA1, y= MJ_Drug_use_with_age$PCA2, z= MJ_Drug_use_with_age$PCA3,
+  color = MJ_Drug_use_with_age$SSAGA_Mj_Age_1st_Use, colors = c('#BF382A', '#0C4B8E')
+) %>% 
+  add_markers() %>% 
+  layout(
+    title = "Subjects who heavily use Marijuana, age of first use: <=14 = 1; 15-17 = 2; 18-20 = 3; >=21 = 4",
+    scene = list(xaxis = list(title = 'PCA1'),
+                 yaxix = list(title = 'PCA2'),
+                 zaxis = list(title = 'PCA3'))
+  )
+
+MJ_use_by_age_3rd
+
+#It looks like most subjects who started smoking when older than 21 cluster together compared to subjects who started smoking at a younger age. 
+#This means that the structural connectome could be affected by drug use starting earlier in life.  
+
+```
+
+```{r}
+ggplot(Dataset_traits, aes(Total_Beer_Wine_Cooler_7days)) + geom_density(aes(color = Age))
+ggplot(Dataset_traits, aes(Age, Total_Beer_Wine_Cooler_7days)) + geom_boxplot()
+
+ggplot(Dataset_traits, aes(Total_Hard_Liquor_7days)) + geom_density(aes(color = Age))
+ggplot(Dataset_traits, aes(Age, Total_Hard_Liquor_7days)) + geom_boxplot()
+
+ggplot(Dataset_traits, aes(SSAGA_Mj_Times_Used)) + geom_density(aes(color = Age))
+ggplot(Dataset_traits, aes(Age, SSAGA_Mj_Times_Used)) + geom_boxplot()
+
+ggplot(Dataset_traits, aes(SSAGA_Times_Used_Illicits)) + geom_density(aes(color = Age))
+ggplot(Dataset_traits, aes(Age, SSAGA_Times_Used_Illicits)) + geom_boxplot()
+
+```
+
+# Summary
+
+GIVE A 2 PARAGRAPH SUMMARY. 
+
+In our initial EDA, we analyzed the relationship between mj and different areas of the brain, and we analyzed the relationship between mj and other hard drugs. We also looked at drinking habits per age and how drinking habits are related to different areas of the brain. We found that young adults were the heaviest drinkers, and we want to look further into if this would hold true for other drug use. After finding age-related patterns, we want to analyze if initial drug use has a greater effect on overall drug use and on specific areas of the brain. Our ultimate goal is to analyze how differences in age and differences in drug use affect the brain.
+
+We looked at the relationship between alcohol and hard drug use as well as marijuana and hard drug use, as well as the if the use of drugs was reflected in the structural connectome. We found that subjects who did hard drugs were likely to also use weed heavily, but less likely to drink alcohol regularly. We also examined if hard drug use was reflected in the structural connectome by looking at clustering when plotting PCA coefficients. There was no obvious clustering between subjects that didn't use drugs versus subjects that used drugs heavily when plotting the first, second, or third principal component when looking at the use of one drug alone. To further explore the impact of age, alcohol, and drug use on the structural connectome we will plot the first three components of the TNPCA analysis and cluster by drug use as well as age of first drug use. The data for this graph is from the followup for question 3. To look at patterns of hard drug use and alcohol and weed, we will continue to use Isabella’s preliminary graphs looking at the correlation of both. Therefore, we want to continuing by looking at combination drug use and the age of first use to see if this is reflected in the connectome. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

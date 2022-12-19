@@ -1,0 +1,121 @@
+---
+title: 'Lab 6: Data visualization with ggplot2'
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+Name:  Jeffrey Yang
+
+
+Collaborated with: Ziang
+
+
+This lab is to be done in the lab session (completed outside of class if need be). You can collaborate with your classmates, but you must identify their names above, and you must submit **your own** lab as an knitted PDF/html file. The deadline for each lab session is
+
+- **Deadline for 320.404: W 11:59 PM**
+- **Deadline for 320.406: F 11:59 PM**
+- **Deadline for 320.407: W 11:59 PM**
+
+
+**Partial help has been provided in code chunks with `eval=FALSE` option. Make sure to delete this option when knitting your solution.**  
+
+
+**This week's agenda**: learn ggplot2;
+
+
+```{r , include=FALSE}
+# This is a good place to put libraries required for using the ggplot function
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen=999)
+library(tidyverse) #Loads the ggplot2 package for visualization
+```
+
+# Introduction
+
+`ggplot2` is a system for declaratively creating graphics, based on [The Grammar of Graphics](https://www.springer.com/it/book/9780387245447). You provide the data, tell ggplot2 how to map variables to aesthetics, what graphical primitives to use, and it takes care of the details.
+
+- `ggplot()` is used to construct the initial plot object, and is almost always followed by + to add component to the plot; 
+
+- `geom_TYPE` is the geometrical object that a plot uses to represent data;
+
+- `aes(x, y, ...)` aesthetic mappings describe how variables in the data are mapped to visual properties (aesthetics) of geoms. Aesthetic mappings can be set in `ggplot()` and/or in individual layers. 
+
+- `facet` is another way to add additional variables is with `facet` functions, particularly useful for categorical variables. They split your plot into facets, subplots that each display one subset of the data.
+
+This lab assignment is based on `mpg` data from `ggplot2` package. This dataset contains a subset of the fuel economy data that the EPA makes available on http://fueleconomy.gov. Each row of the data frame represents a different car model and. There are 234 rows and 11 variables in the dataset. You can type `?mpg` in the console to check details of the dataset.
+
+You will need to modify the code chunks so that the code works within each of chunk (usually this means modifying anything in ALL CAPS). You will also need to modify the code outside the code chunk. When you get the desired result for each step, change `Eval=F` to `Eval=T` and knit the document to HTML/PDF to make sure it works. After you complete the lab, you should submit your HTML/PDF file before the deadline.
+
+## Part 1: Basic Plot
+
+a. Use scatterplot to visualize the relationship between `displ`(engine displacement) and `hwy` (highway miles per gallon) from `mpg` with `displ` on x-axis and `hwy` on y-axis.
+```{r}
+ggplot(data = mpg) +
+  geom_point(aes(x = displ, y = hwy))
+```
+
+b. Add a smooth curve to the previous scatterplot with linear regression (`lm`) as smoothing method.
+```{r}
+ggplot(data = mpg) +
+  geom_point(aes(x = displ, y = hwy)) +
+	geom_smooth(aes(x = displ, y = hwy),method = lm)
+```
+
+c. Generate the same plot as in (b) but specify the aesthetic mappings in `ggplot()` function. Is there any difference between plot (c) and plot (b)?
+```{r}
+ggplot(mpg, aes(x=displ, y=hwy)) +
+  geom_point() +
+	geom_smooth(method = lm)
+```
+ANSWER:No difference
+
+d. Generate the same plot as in (b) but the color of scatterplot points are controlled by `class` (type of car) in `mpg`.
+```{r}
+ggplot(data = mpg, aes(x=displ, y=hwy)) +
+	geom_point(aes(color=class)) +
+  geom_smooth(method=lm)
+```
+
+## Part 2: Advacned Plot
+
+e. Use `facet_wrap` to visualize the relationship between `displ` and `hwy` based on `class`. 
+```{r}
+ggplot(data = mpg) +
+	geom_point(aes(x = displ, y = hwy)) +
+	facet_wrap(class~., nrow=2)
+```
+
+f. Use `facet_grid` to visualize the relationship between `displ` and `hwy` based on the relationship between `drv` (type of drive train) and `cyl` (number of cylinders). 
+```{r}
+ggplot(data = mpg) +
+	geom_point(aes(x = displ, y = hwy)) +
+	facet_grid(drv ~ cyl)
+```
+(Note that both `drv` and `cyl` are categorical variables. Their relationship will form a contingency table. The final plot visualizes relationship between `displ` and `hwy` based on each element of the contingency table.)
+
+g. Compare the following plot with the plot in (a), what is the difference? 
+```{r}
+ggplot(data = mpg) + 
+	geom_point(aes(x = displ, y = hwy), position = "jitter")
+```
+ANSWER: Jitter moves the location of each point a little randomly to spread out overlapping points
+
+h. `geom_jitter` is a convenient shortcut for `geom_point(position = "jitter")`. Generate the plot in (g) and set the points to be transparent with scale `.5`.
+```{r}
+ggplot(data = mpg) + 
+	geom_jitter(aes(x=displ, y=hwy), alpha=0.5)
+```
+
+i. Generate boxplot of `hwy` based on `class`.
+```{r}
+ggplot(data = mpg) + 
+	geom_boxplot(aes(x = hwy, y = class))
+```
+Flip the coordinates of the boxplot with `coord_flip()`.
+```{r}
+ggplot(data = mpg) + 
+	geom_boxplot(aes(x = hwy, y = class)) +
+ coord_flip()
+```

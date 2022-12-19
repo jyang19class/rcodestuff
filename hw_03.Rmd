@@ -1,0 +1,275 @@
+---
+title: "Homework 3"
+output: pdf_document
+---
+
+Name:  Jeffrey Yang
+
+Collaborated with:  
+
+This homework is due on Oct. 8th at 11:59pm. You can collaborate with your classmates, but you must identify their names above, and you must submit **your own** homework as a PDF file on Sakai.
+
+**A special note**: You might see **Challenge** questions. You are not required to answer these challenge questions. However, 
+
+- if you answered the challenge questions, you will get bonus points, allowing you to make mistakes in other parts of the homework and still get 10/10. 
+
+- the maximum score is 10, so your score is capped at 10.  
+
+You also see some optional questions. Again, you are not required to answer these questions, but additional credits will be given. 
+
+**This week's agenda**: functions and ggplot2
+
+
+```{r,, include=FALSE}
+#set seed for reproducibility; don't change
+set.seed(2021)
+#load ggplot2 library
+library(tidyverse)
+```
+
+Wrting functions in R
+===
+The Huber loss function (or just Huber function, for short) is defined as:
+$$
+\psi(x) = \begin{cases}
+x^2 & \text{if $|x| \leq 1$} \\
+2|x| - 1 & \text{if $|x| > 1$} 
+\end{cases}
+$$
+This function is quadratic on the interval [-1,1], and linear outside of this interval. It transitions from quadratic to linear "smoothly", and looks like this:  
+![](huber.png)  
+It is often used in place of the usual squared error loss for robust estimation (e.g., in linear regressions which we will learn later in this class). The sample average, $\bar{X}$---which given a sample $X_1,\ldots,X_n$ minimizes the squared error loss $\sum_{i=1}^n (X_i-m)^2$ over all choices of $m$---can be inaccurate as an estimate of $\mathbb{E}(X)$ if the distribution of $X$ is heavy-tailed. In such cases, minimizing Huber loss can give a better estimate. (Interested in hearing more? Check the difference between mean-estimator and median-estimator)
+
+
+- **1a.** Write a function `huber()` that takes as an input a number $x$, and returns the Huber value $\psi(x)$, as defined above. Hint: the body of a function is just a block of R code, i.e., in this code you can use `if()` and `else()` statements. Check that `huber(1)` returns 1, and `huber(4)` returns 7.
+
+```{r,eval=T}
+#huber: calculate huber loss;  quadratic on [-1,1] and linear outside
+#input: x - double
+#output: huber loss of x
+
+huber = function(x){
+
+  #first way
+  if(abs(x)<=1){
+    return(x^2)
+  }
+  else{
+    return(2*abs(x)-1)
+  }
+  
+  #second way - ifelse()
+}
+huber(1)
+huber(4)
+
+```
+
+
+- **1b.** The Huber function can be modified so that the transition from quadratic to linear happens at an arbitrary cutoff value $a$, as in:
+$$
+\psi_a(x) = \begin{cases}
+x^2 & \text{if $|x| \leq a$} \\
+2a|x| - a^2 & \text{if $|x| > a$} 
+\end{cases}
+$$
+Starting with your solution code to the last question, update your `huber()` function so that it takes two arguments: $x$, a number at which to evaluate the loss, and $a$ a number representing the cutoff value. It should now return $\psi_a(x)$, as defined above. Check that `huber(3, 2)` returns 8, and `huber(3, 4)` returns 9.
+```{r}
+#huber: calculate huber loss;  quadratic on [-a,a] and linear outside
+#input: x - double, a-cutoff value
+#output: huber loss of x
+huber = function(x,a){
+
+  #first way
+  if(abs(x)<=a){
+    return(x^2)
+  }
+  else{
+    return(2*a*abs(x)-a^2)
+  }
+  
+  #second way - ifelse()
+}
+huber(3,2)
+huber(3,4)
+```
+
+
+- **1c.** Update your `huber()` function so that the default value of the cutoff $a$ is 1. Check that `huber(3)` returns 5. 
+```{r}
+#huber: calculate huber loss;  quadratic on [-a,a] and linear outside
+#input: x - double, a-cutoff value
+#output: huber loss of x
+huber = function(x,a=1){
+
+  #first way
+  if(abs(x)<=a){
+    return(x^2)
+  }
+  else{
+    return(2*a*abs(x)-a^2)
+  }
+  
+  #second way - ifelse()
+}
+huber(3)
+```
+
+- **1d.** Check that `huber(a=1, x=3)` returns 5. Check that `huber(1, 3)` returns 1. Explain why these are different.
+```{r}
+huber(a=1, x=3)
+huber(1, 3)
+```
+First call we explicitly define a=1, and x=3. In the second call, the parameters follow the order defined in the function so x=1 and a=3.
+
+
+
+- **1e.** (optional) Vectorize your `huber()` function, so that the first input can actually be a vector of numbers, and what is returned is a vector whose elements give the Huber evaluated at each of these numbers. Hint: you might try using `ifelse()`, if you haven't already, to vectorize nicely. Check that `huber(x=1:6, a=3)` returns the vector of numbers (1, 4, 9, 15, 21, 27).
+```{r}
+#huber: calculate huber loss;  quadratic on [-a,a] and linear outside
+#input: x - double or vector of doubles, a-cutoff value
+#output: huber loss of x
+huber = function(x,a=1){
+  #second way - ifelse()
+  ifelse(abs(x)<=a, x^2, 2*a*abs(x)-a^2)
+}
+huber(x=1:6, a=3)
+```
+
+- **Challenge.** Your instructor computed the Huber function values $\psi_a(x)$ over a bunch of different $x$ values, stored in `huber.vals` and `x.vals`, respectively. However, the cutoff $a$ was, let's say, lost. Using `huber.vals`, `x.vals`, and the definition of the Huber function, you should be able to figure out the cutoff value $a$, at least roughly. Estimate $a$ and explain how you got there. Hint: one way to estimate $a$ is to do so visually, using plotting tools; there are other ways too.
+
+```{r}
+x.vals = seq(0, 5, length=21)
+huber.vals = c(0.0000, 0.0625, 0.2500, 0.5625, 1.0000, 1.5625, 2.2500,
+               3.0625, 4.0000, 5.0625, 6.2500, 7.5625, 9.0000, 10.5000,
+               12.0000, 13.5000, 15.0000, 16.5000, 18.0000, 19.5000, 
+               21.0000)
+plot(x.vals, huber.vals)
+huber(x.vals, 3)
+```
+a is approximately 3, I noticed that the numbers in huber.vals start increasing linearly at the 13th value so I tried the 13th value from x.vals
+
+
+
+Practice some `gemo`'s 
+===
+The R code below generates some data containing the weights by sex (M for male; F for female):
+
+```{r}
+
+#generate wdata
+wdata = data.frame(
+        sex = factor(rep(c("F", "M"), each=200)),
+        weight = c(rnorm(200, 55, 3), rnorm(200, 58, 4)))
+
+head(wdata,5)
+```
+
+- **2a.**  Box plot and violin plot: use `geom_boxplot` (see some examples [here] https://ggplot2.tidyverse.org/reference/geom_boxplot.html) and `geom_violin` (see some examples here: https://ggplot2.tidyverse.org/reference/geom_violin.html) to compare the weight data between males and females.
+```{r}
+ggplot(wdata, aes(sex, weight))+geom_boxplot()
+ggplot(wdata, aes(sex, weight))+geom_violin()
+```
+On average, weight for males seems to be higher than females.
+
+
+
+- **2b.** Try to produce three plots: 1) add the means onto the violin plot using `+ stat_summary()` with arguments such as `fun = "mean",geom = "crossbar", width = 0.5,colour = "red"`;  2) overlap the boxplot with the violin plot and 3) use `geom_jitter()` (set degree of jitter = 0.1) to add dots to the violin plot. 
+```{r}
+ggplot(wdata, aes(sex, weight))+geom_violin()+stat_summary(fun = "mean",geom = "crossbar", width = 0.5,colour = "red")
+
+ggplot(wdata, aes(sex, weight))+geom_violin()+geom_boxplot()
+
+ggplot(wdata, aes(sex, weight))+geom_violin()+geom_jitter(width = .1, height = .1)
+
+
+```
+
+
+
+- **2c.** Try to plot overlapped histograms of weights for both males and females using `geom_histogram()` with `color = sex, fill = "white"` and `position = "dodge"`. 
+```{r}
+ggplot(wdata) + geom_histogram(aes(weight, color = sex),position = "dodge", fill = "white")
+```
+
+
+Heatmap using ggplot
+===
+Using the `geom_tile()` function, you can build most basic heatmaps. Input data must be a long format where each row provides an observation. At least 3 variables are needed per observation:
+
+- `x`: position on the X axis
+- `y`: position on the Y axis
+- `fill`: the numeric value that will be translated in a color
+
+- **3a** Using the following `my.data` to practice color palette in heatmap: 1. try the function `scale_fill_gradient()` and provide two extreme colors (white and blue) to generate a color palette and plot; 
+```{r}
+#generate a data frame
+x = LETTERS[1:20]
+y = paste0("var", seq(1,20))
+my.data = expand.grid(X=x, Y=y)
+my.data$Z = runif(400, 0, 5)
+ggplot(my.data, aes(X,Y,fill=Z)) + geom_tile() + scale_fill_gradient(low = "white", high = "blue")
+
+```
+
+Create US map using ggplot
+===
+Given the limited time we have in class, we did not cover map plot. However, this skill can be very useful for analyzing spatial data.  Github is one resource for getting interesting data for your final project. You can find COVID 19 data here: https://github.com/owid/covid-19-data.  Here we will use `geom_polygon` to plot the latest US COVID 19 vaccination data.
+
+```{r}
+#get the data - note that here we load the raw data
+us.state.vaccination <- read.csv("https://raw.githubusercontent.com/owid/covid-19-data/master/public/data/vaccinations/us_state_vaccinations.csv")
+
+```
+
+- **3a.** Read this [blog](https://www.datanovia.com/en/blog/how-to-create-a-map-using-ggplot2/) (especaill `US map colored by violent crime rates`) and learn to create a map. Extract the vaccination data on 08/28/2021, and create a US map colored by `total_vaccinations`. In this process, you will need to use one of the joint functions to merge two datasets (the vaccination data with the state map data). We will learn more about the joint functions. 
+```{r}
+#step 1 extract vaccination data from the date of `2021-08-28`
+us.state.vaccination2 = us.state.vaccination[us.state.vaccination$date == "2021-08-28",2:14]
+
+#step 2 rename the column name `location` to `region` and changing "new york state" to "new york"
+colnames(us.state.vaccination2)[1] = "region"
+us.state.vaccination2[,1] = tolower(us.state.vaccination2[,1])
+us.state.vaccination2[us.state.vaccination2[,1]=="new york state",1] ="new york"
+
+head(us.state.vaccination2)
+# Step 3: retrieve the states map data and merge with vaccination data
+states_map <- map_data("state")
+vaccination_map <- left_join(states_map, us.state.vaccination2, by = "region")
+# Step 4: create the map
+ggplot(vaccination_map, aes(long, lat, group = group)) +
+  geom_polygon(aes(fill = total_vaccinations), color = "white") + scale_fill_viridis_c(option = "C")
+```
+
+
+(Optional) Try to plot other variables, e.g., `people_vaccinated_per_hundred`; Explore different color palette options.  
+
+```{r}
+#step 1 extract vaccination data from the date of `2021-08-28`
+us.state.vaccination2 = us.state.vaccination[us.state.vaccination$date == "2021-08-28",2:14]
+
+#step 2 rename the column name `location` to `region` and changing "new york state" to "new york"
+colnames(us.state.vaccination2)[1] = "region"
+us.state.vaccination2[,1] = tolower(us.state.vaccination2[,1])
+us.state.vaccination2[us.state.vaccination2[,1]=="new york state",1] ="new york"
+
+# Step 3: retrieve the states map data and merge with vaccination data
+states_map <- map_data("state")
+vaccination_map <- left_join(states_map, us.state.vaccination2, by = "region")
+# Step 4: create the map
+ggplot(vaccination_map, aes(long, lat, group = group)) +
+  geom_polygon(aes(fill = people_fully_vaccinated), color = "white") + scale_fill_viridis_c(option = "D")
+```
+- **3b.** Now you know how to show COVID-19 data. Maybe consider to analyze COVID-19 data for your final project. 
+
+Maybe
+
+- **3c.** (Challenging) If you want to learn how to create dynamic maps, this [blog](https://rpubs.com/rdwinkelman/covid19_us_spread_gif) is a good resource. Read this blog and create a dynamic gif to show the daily vaccinations across US. 
+
+
+
+
+
+
+
+

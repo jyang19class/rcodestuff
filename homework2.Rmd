@@ -1,0 +1,164 @@
+---
+title: 'Homework 2: Data Frames and Apply'
+output: pdf_document
+---
+
+Name:  Jeffrey Yang
+
+Collaborated with:Tao Huang
+
+This homework is due on Sept. 17th at 11:59pm. You can collaborate with your classmates, but you must identify their names above, and you must submit **your own** homework as a PDF file on Sakai.
+
+**A special note**: You might see **Challenge** questions. You are not required to answer these challenge questions. However, 
+
+- if you answered the challenge questions, you will get bonus points, allowing you to make mistakes in other parts of the homework and still get 10/10. 
+
+- the maximum score is 10, so your score is capped at 10.  
+
+You also see some optional questions. Again, you are not required to answer these questions, but additional credits will be given. 
+
+**This week's agenda**: investigating the differences between data frames and matrices; practicing how to use the apply family of functions.
+
+Crime data set
+===
+
+We're going to look at a data set containing the number of assaults, murders, and rapes per 100,000 residents, in each of the 50 US states in 1973. This comes from a built-in data frame called `USArrests`. We'll rename this to `crime.df` and append a column that gives the region for each state, from the built-in vector `state.region`. You can learn more about this crime data set by typing `?USArrests` into your R console.
+
+```{r}
+crime.df = data.frame(USArrests, Region = state.region)
+```
+
+Data frame basics
+===
+
+- **1a.** Report the number of rows of `crime.df`, and print its first 6 rows. Using the functions `is.data.frame()` and `is.matrix()`, confirm that it is a data frame, and not a matrix.
+
+```{r}
+#hit:
+nrow(crime.df)
+head(crime.df)
+is.matrix(crime.df)
+is.data.frame(crime.df)
+```
+
+- **1b.** We're ready to start investigating the differences between data frames and matrices. Use the `as.matrix()` function to convert `crime.df` into a matrix, calling the result `crime.mat`. Print the first 6 rows of `crime.mat`. Next, convert only the first 4 columns of `crime.df` into a matrix, and call the result `crime.mat.noregion`. Print the first 6 rows of `crime.mat.noregion`. Take a look at the first 6 rows of `crime.df`, `crime.mat`, and `crime.mat.noregion`. There is something unsatisfactory about `crime.mat`. What is it and why did this happen? (hit: matrix can only have one type of data.) If you need some guidance, try using the `class()` function to figure out the class of the first in each of the three objects.
+```{r}
+crime.mat = as.matrix(crime.df)
+crime.mat.noregion = as.matrix(crime.df[,1:4])
+head(crime.mat)
+head(crime.mat.noregion)
+```
+Numbers in crime.mat were converted into strings because the region column is strings. The matrix must have all strings since matrix can only have 1 data type.
+
+
+- **1c.** We now move to another difference between data frames and matrices, with regard to column access/indexing.  You can access the `Murder` column of `crime.df` by also typing in `crime.df$Murder`. Print out the result. Try using this same strategy to access `Murder` column of `crime.mat.noregion`. Describe the difference (if any) between the two results. Note: you will need to set `error=TRUE` as an option in this code chunk to allow R Markdown to knit your lab, despite the the error you will encounter here.
+```{r error=TRUE}
+crime.df$Murder
+crime.mat.noregion$Murder
+```
+Using $ operator on matrix creates error, while we can use it for df.
+
+
+- **1d.** Lastly, we'll demonstrate another difference between data frames and matrices, with regard to column additions. Compute a vector called `TotalCrime` of length 50 that gives the sum of the values in `Murder`, `Assault` and `Rape` for each of the 50 states. The first element of `TotalCrime` should give the total crime in Alabama, the second element should give that in Alaska, etc. Do not use a `for()` loop for this; use `rowSums()` instead. Now, insert `TotalCrime` as a column to `crime.df`, and make sure your new column is named `TotalCrime` in the data frame. Note: there are many ways to do this. Print the first 6 rows of the new `crime.df` data frame (hit: `head()`).
+```{r}
+TotalCrime = rowSums(crime.df[,c(1,2,4)])
+crime.df = cbind(crime.df, TotalCrime)
+head(crime.df)
+```
+
+
+
+
+Apply functions versus `for()` loops
+===
+
+The purpose of the next several questions is to help you internalize how the apply functions---specifically, `apply()`, `sapply()`, `lapply()`, and `tapply()`---are essentially convenient ways to write `for()` loops. 
+
+Here's an example to get us started. Consider the following list, called `lis`, which contains 4 vectors of 5 randomly generated numbers.
+
+```{r}
+set.seed(10)
+lis = list(rnorm(5), rnorm(5), rnorm(5), rnorm(5))
+lis
+```
+
+Suppose we wanted to compute the mean of each vector (so we're looking for 4 numbers). We could do this using a `for()` loop in the following way, storing the results in `mean.vector`.
+
+```{r}
+mean.vector = vector(length=length(lis), mode="numeric")
+for (i in 1:length(lis)) {
+  mean.vector[i] = mean(lis[[i]])
+}
+mean.vector
+```
+
+We could also do this using a call to `sapply()`, in the following simpler way, storing the result as `mean.vector2`. This gives us the same exact answer.
+
+```{r}
+mean.vector2 = sapply(lis, mean)
+all.equal(mean.vector, mean.vector2)
+```
+
+We're going to ask you to emulate this for each of 3 other apply functions (`lapply()`, `apply()` and `tapply()`) in the next 3 questions. Your goal will be to compute something using one of the apply functions or a `for()` loop, and show they are the same. The tricky part here will be formatting the `for()` loop properly to match exactly the apply function's output.
+```{r}
+
+```
+
+
+- **2a.** Compute the standard deviation of each of the 4 vectors in `lis`, in two ways. For the first way use `lapply()`, in just one line of code, and call the result `sd.list`. For the second, use a `for()` loop, and call the result `sd.list2`. Use `all.equal()` to show that `sd.list` and `sd.list2` are the same. Hint: to construct an empty list of length `n`, you can use the command `vector(length=n, mode="list")`.
+
+```{r}
+# the easy way, using lapply
+sd.list = lapply(lis, FUN=sd)
+#create an empty list of the correct size then calculate the
+# standard deviation of each vector in lis using a for loop
+sd.list2 = vector(length=length(lis), mode="list")
+
+for (i in 1:length(lis)) {
+sd.list2[[i]] = sd(lis[[i]])
+}
+
+sd.list
+all.equal(sd.list, sd.list2)
+```
+
+- **2b.** (optional) Using `crime.mat.noregion`, compute the maximum value in each of the 5 columns, in two ways. For the first way, use `apply()`, in just one line of code, and call the result `max.vector`. For the second, use a `for()` loop, and call the result `max.vector2`. Use `identical()` to show that `max.vector` and `max.vector2` are equal.
+
+```{r}
+# using apply first
+max.vector = as.vector(apply(crime.mat.noregion, MARGIN = 2, FUN = max))
+
+# create an empty vector of the correct dimensions
+max.vector2 = vector(length = ncol(crime.mat.noregion),mode = "numeric")
+
+# loop through, calculating the maximum value of each column
+for(i in 1:ncol(crime.mat.noregion)) {
+max.vector2[i] = max(crime.mat.noregion[,i])
+}
+
+max.vector
+identical(max.vector,max.vector2)
+```
+
+
+- **2c.** (optional) Using `crime.df`, compute the minimum value of `Murder` within each of the four regions (Northeast, South, North Central, and West), in two ways. For the first way, use `tapply()`, in just one line of code, and call the result `min.vector`. For the second, use a `for()` loop, and call the result `min.vector2`. Show `min.vector` and `min.vector2` are equal. Hint: the trickiest part to figure out here is how to get the order of values in `min.vector` and `min.vector2` to be the same. Use `levels(crime.df$Region)` to dictate the order of regions in `min.vector2`. You'll also have to cast `min.vector2` to be the same data structure as `min.vector`.
+
+```{r}
+# using tapply
+min.vector = as.vector(tapply(crime.df$Murder, INDEX = crime.df$Region, FUN = min))
+
+# create an empty vector of the correct dimensions
+min.vector2 = vector(length(levels(crime.df$Region)),mode = "numeric")
+
+# save the region names now to make code readable
+regions = levels(crime.df$Region) 
+
+# loop through each region, calculating the minimum value in that region
+for (i in 1:length(regions)) {
+min.vector2[i] <- min(crime.df$Murder[crime.df[,"Region"] == regions[i]])
+
+}
+min.vector
+# check the two lists are the identical 
+all.equal(min.vector, min.vector2)
+```

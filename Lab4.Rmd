@@ -1,0 +1,200 @@
+---
+title: 'Lab 4: Text Manipulation'
+output: pdf_document
+---
+
+Name: Jeffrey Yang
+
+Collaborated with: CJ Spence, Isabella Hastings
+
+This lab is to be done in the lab session (completed outside of class if need be). You can collaborate with your classmates, but you must identify their names above, and you must submit **your own** lab as an knitted PDF/html file. The deadline for each lab session is
+
+- **Deadline for 320.404: W 11:59 PM**
+- **Deadline for 320.406: F 11:59 PM**
+- **Deadline for 320.407: W 11:59 PM**
+
+
+**Partial help has been provided in code chunks with `eval=FALSE` option. Make sure to delete this option when knitting your solution.**  
+
+**This week's agenda**: basic string manipulations; more vectorization; practice reading in and summarizing real text data (Shakespeare); just a little bit of regular expressions.
+
+**Note**: Due to different language settings in the Operating System, you might see some decoding errors (e.g., having some unreadable strings) when you do `readLines('shakespeare.txt')` and your answer to Q3c might be different from others. This should be fine and lab instructors will not deduct scores for this issue.
+
+Some string basics
+===
+
+- **1a.** The functions `tolower()` and `toupper()` do as you'd expect: they convert strings to all lower case characters, and all upper case characters, respectively. Apply them to the strings below, as directed by the comments, to observe their behavior.
+
+```{r}
+string1b1.upper = "I'M NOT ANGRY I SWEAR"         # Convert to lower case
+string1b1.lower = tolower(string1b1.upper)
+string1b1.lower
+toupper("Mom, I don't want my veggies")  # Convert to upper case
+toupper("Hulk, sMasH")                   # Convert to upper case
+tolower("R2-D2 is in prime condition, a real bargain!") # Convert to lower case
+```
+
+- **1b.** Consider the string vector `presidents` of length 5 below, containing the last names of past US presidents. Define a string vector `first.letters` to contain the first letters of each of these 5 last names. Hint: use `substr()`, and take advantage of vectorization; this should only require one line of code. Define `first.letters.scrambled` to be the output of `sample(first.letters)` (the `sample()` function can be used to perform random permutations, we'll learn more about it later in the course). Lastly, reset the first letter of each last name stored in `presidents` according to the scrambled letters in `first.letters.scrambled`. Hint: use `substr()` again, and take advantage of vectorization; this should only take one line of code. Display these new last names.
+
+```{r}
+presidents = c("Clinton", "Bush", "Reagan", "Carter", "Ford")
+
+#Define a string vector `first.letters` to contain the first letters
+first.letters = substr(presidents,1,1)
+first.letters
+
+first.letters.scrambled = sample(first.letters)
+first.letters.scrambled
+
+#reset the first letter of each last name stored in `presidents`
+substr(presidents,1,1) = first.letters.scrambled
+presidents
+```
+
+
+- **1c.** Now consider the string `phrase` defined below. Using `substr()`, replace the first four characters in `phrase` by "Provide". Print `phrase` to the console, and describe the behavior you are observing. Using `substr()` again, replace the last five characters in `phrase` by "kit" (don't use the length of `phrase` as magic constant in the call to `substr()`, instead, compute the length using `nchar()`). Print `phrase` to the console, and describe the behavior you are observing.
+
+```{r}
+phrase = "Give me a break"
+
+#replace the first four characters in `phrase` by "Provide"
+substr(phrase,1,4) = "Provide"
+phrase
+
+#replace the last five characters in `phrase` by "kit"
+substr(phrase,nchar(phrase)-4,nchar(phrase)) = "kit"
+phrase
+```
+The first 4 letter are only replaced with the first 4 of provide. The last 5 letters in the phrase aren't completely replaced since kit is only 3 letters long.
+
+
+- **1d.** Consider the string `ingredients` defined below. Using `strsplit()`, split this string up into a string vector of length 5, with elements "chickpeas", "tahini", "olive oil", "garlic", and "salt." Using `paste()`, combine this string vector into a single string "chickpeas + tahini + olive oil + garlic + salt". **Challenge**: produce a final string of the same format, but where the ingredients are sorted in alphabetical (increasing) order. Hint: use `sort()`.
+
+```{r}
+ingredients = "chickpeas, tahini, olive oil, garlic, salt"
+
+#split ingredients into a string vector of length 5
+split.ingredients = strsplit(ingredients, split=", ")[[1]]
+sorted = sort(split.ingredients)
+
+paste(split.ingredients, collapse=" + ")
+paste(sorted, collapse=" + ")
+
+
+```
+
+Shakespeare's complete works
+===
+
+[Project Gutenberg](http://www.gutenberg.org) offers over 50,000 free online books, especially old books (classic literature), for which copyright has expired. We're going to look at the complete works of [William Shakespeare](https://en.wikipedia.org/wiki/William_Shakespeare), taken from the Project Gutenberg website. 
+
+To avoid hitting the Project Gutenberg server over and over again, we've grabbed a text file from them that contains the complete works of William Shakespeare and put it in dropbox https://www.dropbox.com/s/azix20mdvgqj8n9/shakespeare.txt?dl=0. Open the link in your web browser and just skim through this text file a little bit to get a sense of what it contains (a whole lot!). 
+
+Reading in text, basic exploratory tasks
+===
+
+- **2a.** Download and read Shakespeare data into your R session with `readLines()`. Call the result `shakespeare.lines`. (Make sure to specify the file address to `readLines()` if it is not in the same folder as lab_04.rmd.)  This should be a vector of strings, each element representing a "line" of text. Print the first 5 lines. How many lines are there? How many characters in the longest line? What is the average number of characters per line? How many lines are there with zero characters (empty lines)? Hint: each of these queries should only require one line of code; for the last one, use an on-the-fly Boolean comparison and `sum()`.
+
+```{r}
+# read Shakespeare data into R
+shakespeare.lines = readLines('shakespeare.txt')
+
+# hint: your code should use nchar(shakespeare.lines)
+shakespeare.lines[1:5]
+length(shakespeare.lines) #num of lines
+max(nchar(shakespeare.lines)) #longest line
+mean(nchar(shakespeare.lines)) # avg num of chars per line
+sum(nchar(shakespeare.lines) == 0) #num of 0 char lines
+```
+
+- **2b.** Remove the lines in `shakespeare.lines` that have zero characters. Hint: use Boolean indexing. Check that the new length of `shakespeare.lines` makes sense to you.
+
+```{r}
+#hint
+lines.zero = nchar(shakespeare.lines)==0
+shakespeare.lines = shakespeare.lines[!lines.zero]
+length(shakespeare.lines)
+147838-17743
+
+```
+
+- **2c.** Collapse the lines in `shakespeare.lines` into one big string, separating each line by a space in doing so, using `paste()`. Call the resulting string `shakespeare.all`. How many characters does this string have? How does this compare to the sum of characters in `shakespeare.lines`, and does this make sense to you (can you explain using another line of code)? 
+```{r}
+# Collapse the lines in `shakespeare.lines` into one    big string
+shakespeare.all = paste(shakespeare.lines, collapse=" ")
+nchar(shakespeare.all)
+sum(nchar(shakespeare.lines)) + length(shakespeare.lines)-1
+```
+The additional characters are from the spaces that were inserted between the lines. No space at the end so one less than num of lines.
+
+
+- **2d.** Split up `shakespeare.all` into words, using `strsplit()` with `split=" "`. Call the resulting string vector (note: here we are asking you for a vector, not a list) `shakespeare.words`. How long is this vector, i.e., how many words are there? Using the `unique()` function, compute and store the unique words as `shakespeare.words.unique`. How many unique words are there?  
+
+```{r}
+#split up `shakespeare.all` into words
+shakespeare.words = strsplit(shakespeare.all, split=" ")[[1]]
+length(shakespeare.words) #num of words
+shakespeare.words.unique = unique(shakespeare.words)
+length(shakespeare.words.unique) #num of unique words
+shakespeare.words[6]
+```
+
+- **2e.** Plot a histogram of the number of characters of the words in `shakespeare.words.unique`. You will have to set a large value of the `breaks` argument (say, `breaks=100`) in order to see in more detail what is going on. What does the bulk of this distribution look like to you? Why is the x-axis on the histogram extended so far to the right (what does this tell you about the right tail of the distribution)?
+
+```{r}
+#plot a hist
+hist(nchar(shakespeare.words.unique), breaks = 100)
+```
+The bulk of the distribution looks like a normal distribution. The x-axis is extended so far because there some word with around 60 length, but few occurences. The right tail extends much further to the right.
+
+
+**Challenge** All the questions below are challenge questions.
+
+
+Computing word counts
+===
+
+- **3a.** Using `table()`, compute counts for the words in `shakespeare.words`, and save the result as `shakespeare.wordtab`. How long is `shakespeare.wordtab`, and is this equal to the number of unique words (as computed above)? Using named indexing, answer: how many times does the word "thou" appear? The word "rumour"? The word "gloomy"? The word "assassination"?
+
+```{r}
+shakespeare.wordtab = table(shakespeare.words)
+
+length(shakespeare.wordtab)
+
+#how many times does the word "thou" appear?
+shakespeare.wordtab["thou"]
+shakespeare.wordtab["rumour"]
+shakespeare.wordtab["gloomy"]
+shakespeare.wordtab["assassination"]
+```
+Yes, the length of wordtab and number of unique words is the same.
+
+
+- **3b.** Reminder: the `sort()` function sorts a given vector into increasing order; its close friend, the `order()` function, returns the indices that put the vector into increasing order. Both functions can take `decreasing=TRUE` as an argument, to sort/find indices according to decreasing order. See the code below for an example.
+
+```{r}
+set.seed(0)
+(x = round(runif(5, -1, 1), 2))
+sort(x, decreasing=TRUE)
+order(x, decreasing=TRUE)
+```
+
+Sort `shakespeare.wordtab` so that its entries (counts) are in decreasing order, and save the result as `shakespeare.wordtab.sorted`. Print the 25 most commonly used words, along with their counts. What is the most common word? Second and third most common words?
+```{r}
+#sort `shakespeare.wordtab` in decreasing order
+shakespeare.wordtab.sorted = sort(shakespeare.wordtab, decreasing=TRUE)
+
+#25 most commonly used words & their counts
+shakespeare.wordtab.sorted[1:25]
+```
+Most common word is "", 2nd is the, third is I.
+
+
+- **3c.** What you should have seen in the last question is that the most common word is the empty string "". This is just an artifact of splitting `shakespeare.all` by spaces, using `strsplit()`. Redefine `shakespeare.words` so that all empty strings are deleted from this vector (Hint: use Boolean indexing).  Then recompute `shakespeare.wordtab` and `shakespeare.wordtab.sorted`. Check that you have done this right by printing out the new 25 most commonly used words, and verifying (just visually) that is overlaps with your solution to the last question.
+
+```{r}
+shakespeare.words = shakespeare.words[!(shakespeare.words=="")]
+shakespeare.wordtab = table(shakespeare.words)
+shakespeare.wordtab.sorted = sort(shakespeare.wordtab, decreasing = TRUE)
+shakespeare.wordtab.sorted[1:25]
+```

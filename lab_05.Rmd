@@ -1,0 +1,217 @@
+---
+title: 'Lab 5: Functions'
+output: pdf_document
+---
+
+```{r, include=FALSE}
+knitr::opts_chunk$set(cache=TRUE, autodep=TRUE, cache.comments=TRUE)
+```
+
+Name:  Jeffrey Yang
+
+
+Collaborated with:  Ziang
+
+
+This lab is to be done in the lab session (completed outside of class if need be). You can collaborate with your classmates, but you must identify their names above, and you must submit **your own** lab as knitted PDF/html file. The deadline for each lab session is
+
+- **Deadline for 320.404: W 11:59 PM**
+- **Deadline for 320.406: F 11:59 PM**
+- **Deadline for 320.407: W 11:59 PM**
+
+
+**Partial help has been provided in code chunks with `eval=FALSE` option. Make sure to delete this option (or change it to `eval=TRUE`) when knitting your solution.**  
+
+
+**This week's agenda**: creating and updating functions; understanding argument and return structures; revisiting Shakespeare's plays;
+
+
+Shakespeare's complete works
+===
+
+Recall that the complete works of [William Shakespeare](https://en.wikipedia.org/wiki/William_Shakespeare) are available freely from 
+[Project Gutenberg](http://www.gutenberg.org). We have this text file (shakespeare.txt) in our dropbox folder.
+
+Getting lines of text play-by-play
+===
+
+- **1a.** Below is the `get.wordtab.from.txt()` from lecture. Modify the `return` script so that the string vectors `lines` and `words` are both included as named components in the returned list. For good practice, update the documentation in comments to reflect your changes. Then call this function on shakespeare.txt file (with the rest of the arguments at their default values) and save the result as `shakespeare.wordobj`. Using `head()`, display the first several elements of (definitely not all of!) the `lines`, `words`, and `wordtab` components of `shakespeare.wordobj`, just to check that the output makes sense to you.
+
+```{r}
+# get.wordtab.from.txt: get a word table from a text file
+# Input:
+# - filename: string, specifying file name/address 
+# - split: string, specifying what to split on. Default is the regex pattern
+#   "[[:space:]]|[[:punct:]]"
+# - tolower: Boolean, TRUE if words should be converted to lower case before
+#   the word table is computed. Default is TRUE
+# - keep.nums: Boolean, TRUE if words containing numbers should be kept in the
+#   word table. Default is FALSE
+# Output: list, containing word table, some basic numeric summaries, lines, and words
+
+get.wordtab.from.txt = function(filename, split="[[:space:]]|[[:punct:]]",
+                                tolower=TRUE, keep.nums=FALSE) {
+  lines = readLines(filename)
+  text = paste(lines, collapse=" ")
+  words = strsplit(text, split=split)[[1]]
+  words = words[words != ""]
+    
+  # Convert to lower case, if we're asked to
+  if (tolower) words = tolower(words)
+    
+  # Get rid of words with numbers, if we're asked to
+  if (!keep.nums) 
+    words = grep("[0-9]", words, inv=TRUE, val=TRUE)
+  
+  # Compute the word table
+  wordtab = table(words)
+  
+  return(list(wordtab=wordtab,
+              number.unique.words=length(wordtab),
+              number.total.words=sum(wordtab),
+              longest.word=words[which.max(nchar(words))], lines=lines, words=words))
+}
+
+shakespeare.wordobj = get.wordtab.from.txt("shakespeare.txt")
+head(shakespeare.wordobj[["wordtab"]])
+head(shakespeare.wordobj[["lines"]])
+head(shakespeare.wordobj[["words"]])
+```
+
+- **1b.** Skim through shakespeare.txt file (open it with your txt file editor). Near the top you’ll see a table of contents. Note that “THE SONNETS” is the first play, and “VENUS AND ADONIS” is the last. The following R scripts create a list `shakespeare.lines.by.play` of length equal to the number of Shakespeare's plays (44 plays in total). Each element of `shakespeare.lines.by.play` contains lines of text in each play.  That is, `shakespeare.lines.by.play[[1]]` contains the lines for Shakespeare's first play, `shakespeare.lines.by.play[[2]]`  contains the lines for Shakespeare's second play, and so on. We also name the components of `shakespeare.lines.by.play` according to the titles of the plays. Try to read the script, run them with your own computer and understand them
+
+```{r}
+# get the lines from the file
+#shakespeare.lines = shakespeare.wordobj$lines
+shakespeare.lines = readLines("shakespeare.txt")
+
+# remove the blank lines and trim the whitespace
+shakespeare.lines = shakespeare.lines[shakespeare.lines != ""]
+shakespeare.lines = trimws(shakespeare.lines)
+
+# search for the begining and the end of the table of contents
+toc.start = which(shakespeare.lines == "THE SONNETS")[1]
+toc.end = which(shakespeare.lines == "VENUS AND ADONIS")[1]
+
+# fill a vector with the name and starting line of each play
+title.count = toc.end - toc.start + 1
+titles = character(title.count) #blank vector for the name
+titles.start = numeric(title.count) #blank vector for the starting line
+
+for(i in 1:title.count) {
+titles[i] = shakespeare.lines[i + toc.start - 1]
+titles.start[i] = grep(titles[i], shakespeare.lines)[2]
+}
+
+# find the end of each play using the beginning of the next play
+titles.end = numeric(title.count) #blank vector for the ending line
+titles.end[1:title.count-1] = titles.start[2:title.count] - 1
+titles.end[title.count] = tail(grep("FINIS", shakespeare.lines), 1)
+#after FINIS, it's "CONTENT NOTE (added in 2017)"; 
+
+#grab the play lines according to titles.start and titles.end
+shakespeare.lines.by.play = list()
+for (i in 1:title.count) {
+shakespeare.lines.by.play[[titles[i]]] = shakespeare.lines[titles.start[i]:titles.end[i]]
+}
+
+```
+
+
+- **1c.** Using one of the apply functions (hint:`lapply`), along with `head()`, print the first 4 lines of each of Shakespeare's plays in `shakespeare.lines.by.play` to the console. This should only require one line of code.
+```{r}
+lapply(shakespeare.lines.by.play, head)
+```
+
+
+
+Getting word tables play-by-play
+===
+
+- **2a.** Define a function `get.wordtab.from.lines()` to have the same argument structure as `get.wordtab.from.txt()` in Q1a, except that the first argument of `get.wordtab.from.lines()` should be `lines`, a string vector passed by the user that contains lines of text to be processed. The body of `get.wordtab.from.lines()` should be the same as `get.wordtab.from.txt()`, except that `lines` is passed and does not need to be computed using `readlines()`. The output of `get.wordtab.from.lines()` should be the same as `get.wordtab.from.txt()`, except that `lines` does not need to be returned as a component. For good practice, incude documentation for your `get.wordtab.from.lines()` function in comments. Run your function for the first element in `shakespeare.lines.by.play` (i.e., `shakespeare.lines.by.play[[1]]`). 
+
+```{r}
+
+#put comments to explain your function here
+# get.wordtab.from.lines: get a word table from lines
+# Input:
+# - lines: lines of a text file 
+# - split: string, specifying what to split on. Default is the regex pattern
+#   "[[:space:]]|[[:punct:]]"
+# - tolower: Boolean, TRUE if words should be converted to lower case before
+#   the word table is computed. Default is TRUE
+# - keep.nums: Boolean, TRUE if words containing numbers should be kept in the
+#   word table. Default is FALSE
+# Output: list, containing word table, some basic numeric summaries, and words
+
+get.wordtab.from.lines = function(lines, split="[[:space:]]|[[:punct:]]",
+                                tolower=TRUE, keep.nums=FALSE) {
+  text = paste(lines, collapse=" ")
+  words = strsplit(text, split=split)[[1]]
+  words = words[words != ""]
+    
+  # Convert to lower case, if we're asked to
+  if (tolower) words = tolower(words)
+    
+  # Get rid of words with numbers, if we're asked to
+  if (!keep.nums) 
+    words = grep("[0-9]", words, inv=TRUE, val=TRUE)
+  
+  # Compute the word table
+  wordtab = table(words)
+  
+  return(list(wordtab=wordtab,
+              number.unique.words=length(wordtab),
+              number.total.words=sum(wordtab),
+              longest.word=words[which.max(nchar(words))], words=words))
+}
+
+lapply(get.wordtab.from.lines(shakespeare.lines.by.play[[1]]),head)
+```
+
+
+- **2b.** Using a `for()` loop or one of the apply functions (your choice here), run the `get.wordtab.from.lines()` function on each of the components of `shakespeare.lines.by.play`, (with the rest of the arguments at their default values). Save the result in a list called `shakespeare.wordobj.by.play`. That is, `shakespeare.wordobj.by.play[[1]]` should contain the result of calling this function on the lines for the first play, `shakespeare.wordobj.by.play[[2]]` should contain the result of calling this function on the lines for the second play, and so on. 
+```{r}
+shakespeare.wordobj.by.play = lapply(shakespeare.lines.by.play, get.wordtab.from.lines)
+lapply(shakespeare.wordobj.by.play[[1]], head)
+```
+
+
+
+Refactoring the word table functions (optional)
+===
+
+- **3a.** Look back at `get.wordtab.from.lines()` and `get.wordtab.from.txt()`. Note that they overlap heavily, i.e., their bodies contain a lot of the same code. Redefine `get.wordtab.from.txt()` so that it just calls `get.wordtab.from.lines()` in its body. Your new `get.wordtab.from.txt()` function should have the same inputs as before, and produce the same output as before. So externally, nothing will have changed; we are just changing the internal structure of `get.wordtab.from.txt()` to clean up our code base (specifically, to avoid code duplication in our case). This is an example of **code refactoring**. 
+    Call your new `get.wordtab.from.txt()` function on the file for Shakespeare's complete works, saving the result as `shakespeare.wordobj2`. Compare some of the components of `shakespeare.wordobj2` to those of `shakespeare.wordobj` (which was computed using the old function definition) to check that your new implementation works as it should.
+```{r}
+# get.wordtab.from.txt: get a word table from a text file
+# Input:
+# - filename: string, specifying file name/address 
+# - split: string, specifying what to split on. Default is the regex pattern
+#   "[[:space:]]|[[:punct:]]"
+# - tolower: Boolean, TRUE if words should be converted to lower case before
+#   the word table is computed. Default is TRUE
+# - keep.nums: Boolean, TRUE if words containing numbers should be kept in the
+#   word table. Default is FALSE
+# Output: list, containing word table, some basic numeric summaries, lines, and words
+
+get.wordtab.from.txt = function(filename, split="[[:space:]]|[[:punct:]]",
+                                tolower=TRUE, keep.nums=FALSE) {
+  lines = readLines(filename)
+  wordtab_all = get.wordtab.from.lines(lines)
+  
+  return(list(wordtab=wordtab_all[["wordtab"]],
+              number.unique.words=wordtab_all[["number.unique.words"]],
+              number.total.words=wordtab_all[["number.total.words"]],
+              longest.word=wordtab_all[["longest.word"]], lines=lines, words=wordtab_all[["words"]]))
+}
+
+shakespeare.wordobj2 = get.wordtab.from.txt("shakespeare.txt")
+head(shakespeare.wordobj2[["wordtab"]])
+head(shakespeare.wordobj2[["lines"]])
+head(shakespeare.wordobj2[["words"]])
+```
+    
+
+
+
