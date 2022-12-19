@@ -1,0 +1,150 @@
+---
+title: "final"
+output:
+  pdf_document: default
+  html_document: default
+date: "2022-12-06"
+---
+```{r}
+library(faraway)
+library(INLA)
+library(rstan)
+library(data.table)
+library(dplyr)
+library(ggplot2)
+library(MASS)
+library(lme4)
+library(geepack)
+library(pbkrtest)
+library(RLRsim)
+library(formatR)
+knitr::opts_chunk$set(tidy.opts = list(width.cutoff = 60), tidy = TRUE)
+```
+
+
+1)
+```{r}
+phlebitis=read.csv("https://rls.sites.oasis.unc.edu/phlebitis.csv")
+```
+
+a)
+```{r}
+means = phlebitis %>% group_by(Treatment, Time) %>% summarise(mean = mean(Y))
+ggplot(means, aes(Time, mean, color=Treatment))+geom_point()
+```
+It seems like treatment 1 has a higher temperature on average compared to the other treatments, with this being more pronounced as time increases. Treatments 2 and 3 are both less and closer to each other, with the higher mean flip flopping between them.
+
+
+b)
+```{r}
+lm1 = lm(Y~factor(Time), phlebitis)
+lm2 = lm(Y~factor(Time)+factor(Treatment), phlebitis)
+lm3 = lm(Y~factor(Time)*factor(Treatment), phlebitis)
+summary(lm1)
+summary(lm2)
+summary(lm3)
+```
+
+c)
+```{r}
+anova(lm1, lm2)
+anova(lm2, lm3)
+```
+The anova comparision between i and ii has a significant p-value, indicating that we should use ii over i. The anova comparison between ii and also has a small p-value, indicating we should use iii over ii. It seems like the best model is the one that includes Time, Treatment, and their interaction. Time, treatment, and the interaction all affect the temperature.
+
+d)
+```{r}
+plot(lm2)
+plot(phlebitis$Animal, resid(lm2))
+```
+It seems like the residuals vs fitted plot might have increasing variance as the fitted values increase, it's not entirely obvious. The animal vs residuals plot appears to have randomly distributed values. Animal doesn't have a clear effect from the plot. The qqplot is fairly linear and has some potential outliers near the ends. We could try more than a simple linear model fit and adding random effects to improve it, but these diagnostics seem to indicate a reasonable fit.
+
+e)
+```{r}
+lme1 = lmer(Y~factor(Time) + (1|Animal), phlebitis)
+lme2 = lmer(Y~factor(Time) + factor(Treatment) + (1|Animal), phlebitis)
+lme3 = lmer(Y~factor(Time)*factor(Treatment) + (1|Animal), phlebitis)
+summary(lme1)
+summary(lme2)
+summary(lme3)
+```
+The fixed coefficients all stay the same. Most of the standard errors change a little, but some stay the same. The intercept and time standard errors generally increase a little, while treatment stays the same and decreases in the second model. The variance of the random effect is similar in the first model and much smaller in the others compared to the natural variance, so animal may not be that impactful here.
+
+f)
+```{r}
+KRmodcomp(lme2, lme1)
+KRmodcomp(lme3, lme2)
+```
+For both kenward roger tests, we get a small p-value indicating that we should reject the smaller model. This means that Treatment and the interaction are significant in our model, with the best model including both terms. This is the same result we got from c).
+
+g)
+```{r}
+exactRLRT(lme3)
+```
+We could find the LRT statistic for our model with animal as a random effect, with the null model being the model without the animal random effect, and then use bootstrap to test the probability of getting that LRT value of our model naturally. Using the bootstrap method to test the random effect on the best model we found from f), it seems like the animal random effect is not significant.
+
+h)
+For this data, time has a significant effect on temp, with more time increasing temp. There is evidence that both treatment and the interaction between treatment/time had an effect. Treatment 1 increases temp more than 2 and 3, with 2 and 3 being similar. The random effect from animals was not significant, the effect was less than the natural variance, and didn't have an effect on my previous conclusions.
+
+
+2)
+```{r}
+respiratory=read.csv("https://rls.sites.oasis.unc.edu/respiratory.csv")
+respiratory
+```
+
+a)
+```{r}
+lmod = glm(outcome~ treat + sex + age + I(age^2) + baseline + center, family = binomial, respiratory)
+summary(lmod)
+```
+Treatment, age, age squared, baseline, and center are all significant. Only sex is not. This model doesn't take into account the potential random effects of the patients and what visit is being measured. We don't care about the specific subjects themselves but rather the population, so we can't use them as a fixed effect.
+
+b)
+```{r}
+modpql = glmmPQL(outcome~ treat + sex + age + I(age^2) + baseline + center, random = ~1|id, family = binomial, data = respiratory)
+summary(modpql)
+```
+
+c)
+```{r}
+modlap = glmer(outcome~ treat + sex + age + I(age^2) + baseline + center + (1|id), family = binomial, data = respiratory)
+summary(modlap)
+```
+
+d)
+```{r}
+modgh = glmer(outcome~ treat + sex + age + I(age^2) + baseline + center + (1|id), nAGQ=25, family = binomial, data = respiratory)
+summary(modgh)
+```
+
+e)
+```{r}
+modgeep = geeglm(outcome~ treat + sex + age + I(age^2) + baseline + center, id=id, corstr = "ar1", scale.fix = T, data = respiratory, family = binomial)
+summary(modgeep)
+```
+The ar1 correlation structure was used here since each successive visit might be correlated. You could expect the results of one visit to be related to the previous visits, maybe giving time for the treatment to work or even wear off. 
+
+
+f)
+The results from the previous glmm methods all have fairly similar fixed coefficient values, standard errors, and a similar random effect standard deviation. All but the sex is significant. The values are not exactly the same, but nothing is significantly different, except for the geem method. The geem method produces smaller coefficients and random effect, which is expected, but the standard error is similar still. Compared to a), with the exception of geem, both the coefficient values and the standard errors are all larger.
+
+
+
+g)
+```{r}
+formula = outcome ~ treat + sex + age + I(age^2) + baseline + center + f(id,model="iid")
+result = inla(formula, family="binomial", data=respiratory)
+```
+
+```{r}
+sigmaalpha <- inla.tmarginal(function(x) 1/sqrt(x), result$marginals.hyperpar$"Precision for id")
+restab <- sapply(result$marginals.fixed, function(x) inla.zmarginal(x, silent=TRUE))
+restab <- cbind(restab, inla.zmarginal(sigmaalpha ,silent=TRUE))
+colnames(restab)[8]="sigmaalpha"
+restab
+```
+Inla produces overall larger posterior means for the fixed and random effects compared to the estimates from the previous methods. The meaning is still the same for each effect. Placebo, being male, and higher age has a negative effect on respiratory status. Ages squared, good baseline, and second center, improve status. All but the sex is significant as well, only the sex has 0 in it's 95% credible interval. The random effect of indivduals does seem much smaller here. 
+
+h)
+The treatment does seem to have a positive effect on improving respiratory status. The sex of the subject did not matter. You can expect respiratory status to worsen with age, but the older you get, the less it worsens per year older. The baseline condition does seem to reflect the outcome, if you started off with a good status, you were more likely to have a good outcome and vice versa. Center 2 appears to have slightly better results than center 1. Naturally, the results do depend a little on a per person basis, even with the previous measurements. 

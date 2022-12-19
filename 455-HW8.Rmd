@@ -1,0 +1,197 @@
+---
+title: "R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+4.12.3)
+
+a)
+```{r}
+plant = read.table('PLANT.txt', header = T)
+height = plant$Y
+temp = plant$X1
+time = plant$X2
+plot(temp, height, pch=time/6, main = 'Temp vs Height', ylab = 'Height (inches)', xlab = 'Temp (F)')
+```
+Plot. triangle-12, circle 6 days
+
+b)
+```{r}
+plot(time, height, pch=temp/10, main = 'Time vs Height', ylab = 'Height (inches)', xlab = 'Time (days)')
+```
+Plot
+
+c)
+The data was preselected. Time is always either 6 or 12 and there are the same number of measurements for each temperature.
+
+d)
+```{r}
+lm1 = lm(Y~X1+X2+X1X2, data = plant)
+sres = rstandard(lm1)
+plot(temp, sres)
+plot(time, sres)
+plot(lm1$fitted.values, sres)
+plot(plant$X1X2, sres)
+qqnorm(sres)
+```
+The residuals do not indicate any problems. The residuals appear to be randomly distributed when plotted against the covariates and fitted values. The qqplot shows a good linear fit.
+
+e)
+```{r}
+summary(lm1)
+```
+beta0 hat = 1.697
+beta1 hat = -0.0203
+beta2 hat = -0.5476
+beta3 hat = 0.0151
+sigma hat = 0.3724
+muy(x1,x2,x3) hat = 1.697 - 0.0203x1 - 0.5476x2 + 0.0151x3
+Y(x1,x2,x3) hat = 1.697 - 0.0203x1 - 0.5476x2 + 0.0151x3
+
+f)
+NH: beta2=beta3=0       AH: At least of one beta2 or beta3 != 0
+```{r}
+summary(lm(Y~X1, data=plant))
+```
+```{r}
+SSEReduced = 18*2.223^2
+SSEComplete = 16*0.3724^2
+numerator = (SSEReduced-SSEComplete)/(18-16)
+denominator = (SSEComplete)/16
+Fc = numerator/denominator
+pf(Fc, 2, 16, lower.tail = F)
+```
+Since the p-value is very close to zero, we reject the NH at 99% confidence(could vary since p-value is incredibly small). At least one of beta2 or beta3 does not equal 0.
+
+
+g) 
+```{r}
+beta0 = lm1$coefficients[1]
+beta1 = lm1$coefficients[2]
+beta2 = lm1$coefficients[3]
+beta3 = lm1$coefficients[4]
+fit = beta0 + beta1*65 + beta2*10 + beta3*650
+df = data.frame(X1=65, X2=10, X1X2=650)
+predict.lm(lm1, df, interval='confidence', level=0.95)
+fit
+
+```
+muy(65, 10, 650) hat = 4.7158
+C[4.444 <= muy(65,10,650) <= 4.987] = 0.95
+
+We are 95% confident that the true mean height for a plant grown at 65 degrees F at the end of 10 days lies within this confidence interval.
+
+
+
+
+4.12.4)
+
+b i)
+```{r}
+height18 = read.table('AGE18.txt', header = T)
+lm2 = lm(Y~X1+X2+X3+X4+X5+X6+X7, data=height18)
+summary(lm2)
+```
+beta0 hat = -78.2684
+beta1 hat = 1.3718
+beta2 hat = 0.7824
+beta3 hat = 1.0514
+beta4 hat = -0.1199
+beta5 hat = 0.0914
+beta6 hat = 0.0883
+beta7 hat = -0.1017
+
+muy(x1,x2,x3,x4,x5,x6,x7) hat = -78.2684 + 1.3718x1 + 0.7824x2 + 1.0514x3 - 0.1199x4 + 0.0914x5 + 0.0883x6 - 0.1017x7
+
+ii)
+sigma hat = 1.004
+
+
+iii)
+```{r}
+confint(lm2)
+```
+Confidence intervals above^
+Left is lower bound, right is upper bound
+beta0-intercept, beta1-x1, beta2-x2, etc.
+
+We are 95% confident that the true value for beta1 is between 0.237 and 2.506. There is likely a relationship between X1 and Y.
+
+iv)
+muy(X1+1, X2, X3,..., X7) - muy(X1, X2, X3,..., X7) = beta1
+muy(X1-1, X2, X3,..., X7) - muy(X1, X2, X3,..., X7) = -beta1
+
+
+The difference between the average heights of the two groups is beta1.
+
+C[0.237 <= beta1 <= 2.506] = 0.95
+
+
+b)
+vii)
+```{r}
+df = data.frame(X1=20, X2=60, X3=72, X4=61, X5=71, X6=62, X7=70)
+predict(lm2, df)
+```
+predicted height at 18 of individual from that subpopulation is 69.3475 inches.
+
+viii)
+predicted average height at age 18 from that subpopulation is also 69.3475 inches.
+
+
+ix)
+```{r}
+predict.lm(lm2, df, interval='prediction', level = 0.9)
+```
+
+95% lower confidence bound for height at age 18 of a person from the stated subpopulation is 65.9856
+
+
+x)
+```{r}
+predict.lm(lm2, df, interval='confidence', level = 0.9)
+```
+95% lower confidence bound for the average height at age 18 of a person from the stated subpopulation is 66.501
+
+xi)
+Both the average and specific point estimate are predicted with the same regression equation. The standard errors for mean and the specific estimate are different. Confidence interval for specific estimate will be larger.
+
+
+
+c)
+i)
+```{r}
+lm3 = lm(Y~X2+X3, data = height18)
+lm4 = lm(Y~X1+X2+X3, data=height18)
+summary(lm3)
+summary(lm4)
+```
+
+NH: Model C       AH: Model D
+```{r}
+SSEC = 17*1.131^2
+SSED = 16*.9305^2
+numerator = (SSEC-SSED)/(17-16)
+denominator = (SSED)/16
+Fc = numerator/denominator
+pf(Fc, 1, 16, lower.tail = F)
+```
+Since the p-value is small (less than 0.05), we reject the null hypothesis at a 95% confidence level.
+
+
+
+ii)
+NH: Model D       AH: Model F
+```{r}
+SSEF = 12*1.004^2
+numerator = (SSED-SSEF)/(16-12)
+denominator = SSEF/12
+Fc = numerator/denominator
+pf(Fc,4, 12, lower.tail = F)
+```
+Since the p-value is large we do not have enough evidence to reject the null hypothesis.
+
+iii)
+I would consider model D to be the best model. We rejected model C with the AH being model D. We did not reject model D with the AH being model F. It would make sense that model D is the best based on the tests. 

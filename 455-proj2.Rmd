@@ -1,0 +1,197 @@
+---
+title: "R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+```{r}
+tuition = read.csv('tuition-final.csv')
+summary(tuition)
+head(tuition)
+```
+
+
+
+
+2)
+```{r}
+tuition$Acc.rate = tuition$Accepted/tuition$Applied
+head(tuition)
+```
+
+3)
+```{r}
+unc = tuition[tuition$Name == 'University of North Carolina at Chapel Hill',]
+unc
+```
+At line 682
+
+
+
+4)
+```{r}
+add1 <- function(a, b){
+  
+  # add the variables
+  c = a + b
+  return(c)
+  
+}
+
+add2 <- function(a, b = 3){
+  
+  # add the variables
+  c = a + b
+  return(c)
+  
+}
+
+# Try adding 5 and 7
+add1(5, 7)
+add2(5, 7)
+
+# Try adding one variable
+#add1(5)
+add2(5)
+```
+b is assigned 3 unless specified in the function call. Allows the function to be called with just a. Because of this, add2 works with just a as a parameter, while add1 causes an error.
+
+
+
+
+
+5)
+```{r}
+beta1 <- function(r, Sx, Sy){
+  return(r*(Sy/Sx))
+}
+
+beta0 <- function(r, Sx, Sy, ybar, xbar){
+  b1 = beta1(r, Sx, Sy)
+  b0 = ybar-b1*xbar
+  return(b0)
+}
+
+beta1(1,2,0)
+beta0(1,2,0,3,4)
+```
+Functions above^
+
+
+
+6) Sy = 0 would always result in beta1 being 0. That would mean there is no linear relationship between the two variables.
+
+
+
+
+```{r}
+plot(tuition$Avg.SAT, tuition$Out.Tuition, main = "title", xlab = "label", ylab = "label", pch = 7, cex = 2, col = "blue")
+```
+7)
+```{r}
+plot(tuition$Avg.SAT, tuition$Out.Tuition, main = "Sat vs Tuition", xlab = "Average Sat Score", ylab = "Tuiton ($)", pch = 1, cex = 0.5, col = "blue")
+```
+pch changes the shape of the object that is plotted. cex changes the size of the plotted object.
+
+
+
+
+8)
+```{r}
+plot(tuition$Avg.SAT, tuition$Out.Tuition, main = "Sat vs Tuition", xlab = "Average Sat Score", ylab = "Tuiton ($)", pch = 1, cex = 0.5, col = tuition$Public)
+```
+If the school is public it is drawn in one color, looks to be black in this case. If a school is not public, it is drawn in another color, which is red here.
+
+
+
+
+
+9)
+```{r}
+plot(tuition$Avg.SAT, tuition$Out.Tuition, main = "Sat vs Tuition", xlab = "Average Sat Score", ylab = "Tuiton ($)", pch = 1, cex = 0.5, col = tuition$Public)
+abline(0,10)
+```
+
+
+
+
+
+10)
+```{r}
+tuition_clean = tuition[!is.na(tuition$Avg.SAT ) & !is.na(tuition$Out.Tuition),]
+
+sat = tuition_clean$Avg.SAT
+outtuition = tuition_clean$Out.Tuition
+SSX = sum((sat-mean(sat))^2)
+SSY = sum((outtuition-mean(outtuition))^2)
+SXY = sum((sat-mean(sat))*(outtuition-mean(outtuition)))
+SX = sqrt(SSX/(length(sat)-1))
+SY = sqrt(SSY/(length(sat)-1))
+r = SXY/sqrt(SSX*SSY)
+b1 = beta1(r, SX, SY)
+b0 = beta0(r, SX, SY, mean(outtuition), mean(sat))
+
+b0
+b1
+beta1(r, sd(tuition_clean$Avg.SAT), sd(tuition_clean$Out.Tuition))
+
+plot(tuition$Avg.SAT, tuition$Out.Tuition, main = "Sat vs Tuition", xlab = "Average Sat Score", ylab = "Tuiton ($)", pch = 1, cex = 0.5, col = tuition$Public)
+abline(b0,b1)
+```
+
+There appears to be a positive relationship between average SAT score and tuition cost. As the average Sat score increases, the tuition cost of the school increases.
+
+
+
+
+
+
+11)
+```{r}
+predict_yval <- function(X, Y, x_new){
+  SSX = sum((X-mean(X, na.rm = T))^2, na.rm = T)
+  SSY = sum((Y-mean(Y, na.rm = T))^2, na.rm = T)
+  SXY = sum((X-mean(X, na.rm = T))*(Y-mean(Y, na.rm = T)), na.rm = T)
+  SX = sqrt(SSX/(length(X)-1))
+  SY = sqrt(SSY/(length(X)-1))
+  r = SXY/sqrt(SSX*SSY)
+  
+  b1 = beta1(r, SX, SY)
+  b0 = beta0(r, SX, SY, mean(Y, na.rm = T), mean(X, na.rm = T))
+  return(b0+x_new*b1)
+  
+}
+```
+
+
+```{r}
+# Find UNC values
+unc = tuition[tuition$Name == 'University of North Carolina at Chapel Hill',]
+x_unc = unc$Avg.SAT
+y_unc = unc$Out.Tuition
+
+# Find Duke values
+duke = tuition[tuition$Name == 'Duke University',]
+x_duke = duke$Avg.SAT
+y_duke = duke$Out.Tuition
+
+y_unc
+y_duke
+# Predict tuitions
+predict_yval(tuition_clean$Avg.SAT, tuition_clean$Out.Tuition, x_unc)
+predict_yval(tuition_clean$Avg.SAT, tuition_clean$Out.Tuition, x_duke)
+```
+The regression overestimates the tuition for UNC by about 5000 dollars and underestimates the tuition for Duke by about 3600 dollars. According to this model, you would be getting a good deal at UNC, but not Duke.
+
+
+
+
+```{r}
+pred = lm(outtuition~sat)
+-9173.7964 + x_duke*19.7979
+```
+

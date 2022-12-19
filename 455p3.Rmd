@@ -1,0 +1,182 @@
+---
+title: "R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+```{r}
+laptops = read.csv('laptops.csv')
+original_laptops = read.csv('laptops.csv')
+summary(laptops)
+head(laptops)
+num = c(1,3,4,16,17)
+```
+
+1)
+```{r}
+for(i in 1:ncol(laptops)){
+  if (i %in% num){
+    laptops[,i] = as.numeric(laptops[,i])
+  }
+  else {
+    laptops[,i] = as.factor(laptops[,i])
+    #laptops[,i] = as.numeric(laptops[,i])
+  }
+  #par(ask = TRUE)
+  plot(laptops[,i], xlab = names(laptops)[i])
+}
+```
+This code plots a graph or boxplot for each of the covariates. Par(ask=True) requires a user input to move on to the next graph. We used a for loop to iterate through the indices in order to access the correct variable names.
+
+There are two variables where only one outcome is present so that might not be useful for regression.
+
+b)
+```{r}
+for(i in 1:ncol(laptops)){
+  plot(laptops[,i], laptops[,17], xlab = names(laptops)[i], ylab = "Price")
+}
+```
+It is hard to tell just from these graphs since the numbers are all over the place for a lot of the covariates. It does seem that some manufacturers are more expensive than others and processor speed increases cost.
+
+```{r}
+laptops = laptops[which(complete.cases(laptops)), ]
+```
+
+2)
+```{r}
+# a
+#lm_a = lm(Price ~ Subwoofer, data = laptops)
+laptops$Subwoofer
+```
+Subwoofer contains only one value so lm() will not work.
+
+```{r}
+# b
+lm_b = lm(Price ~ Max.Horizontal.Resolution^2, data = original_laptops)
+summary(lm(Price ~ Max.Horizontal.Resolution, data = original_laptops))
+summary(lm_b)
+#original_laptops$Max.Horizontal.Resolution^2
+```
+Squaring max resolution does nothing and does not really make sense since it is intended to be a categorical variable. There are fixed sizes of resolution.
+
+```{r}
+# c
+lm_c = lm(Price ~ Manufacturer + Operating.System, data = laptops)
+summary(lm_c)
+```
+OS is not defined in the linear regression. Probably because there is a direct relationship between OS and manufacturer. Mac OS is only on Apple products.
+
+```{r}
+# d
+lm_d1 = lm(Price ~ Processor.Speed+Processor, data = original_laptops)
+lm_d2 = lm(Price ~ Processor.Speed*Processor, data = original_laptops)
+summary(lm_d1)
+summary(lm_d2)
+#original_laptops$Processor.Speed*original_laptops$Processor
+```
+First lm seems to run. There is likely a strong relationship between processor speed and processor. In the second lm, we get both variables and interaction between two variables. We get some NAs, likely due to the strong relationship.
+
+3)
+```{r}
+lm_3 = lm(Price ~ Port.Replicator + Bluetooth + Manufacturer, data = laptops)
+summary(aov(lm_3))
+```
+
+Port replicator seems like the best variable to remove. The pvalue is considerably higher than the others (above 0.05). It might suggest that there is little or no relationship with the price.
+
+
+4)
+```{r}
+summary(lm(Price~Operating.System, data=laptops))
+summary(lm(Price~Manufacturer, data=laptops))
+```
+I would choose to include the manufacturer. The adjusted R-squared is considerably greater. The f-test p-value for manufacturer is smaller than 0.01, while the p-value for OS is larger than 0.05.
+
+
+5)
+```{r}
+  # Install vif package
+require("car")
+  
+  # Get rid of identified useless variables
+bad = c("Port.Replicator", "Subwoofer", "CDMA")
+lt = laptops[, !(names(laptops) %in% bad)]
+#lt = original_laptops[, !(names(original_laptops) %in% bad)]
+```
+
+```{r}
+lm_4 = lm(Price ~ .-Operating.System, data = lt)
+vif(lm_4)
+```
+I would not remove any of the variables. There are some high GVIF values (>10), but the GVIF^1/(2df) values squared are all reasonably small. Though, memory technology, installed memory, processor speed, and docking station could be watched.
+
+6)
+```{r}
+lm_5 = lm(Price ~ .-Manufacturer, data = lt)
+lm_6 = lm(Price ~ .-Operating.System, data = lt)
+anova(lm_5, lm_6)
+anova(lm_6)
+anova(lm_5)
+vif(lm_5)
+vif(lm_6)
+```
+
+It seems that manufacturer is preferred over operating system. The gvif^1/2df for manufacturer is lower than for OS. The p-value in the one way anova for operating system is >0.05 while manufacturer is <0.05, which indicates manufacturer more likely has a relationship with price.
+
+7)
+```{r}
+require('leaps')
+```
+a) There are 4 types of variable selection. Exhaustive search, forward stepwise, backward stepwise, and sequential replacement. Possible models are adjr2, mallows cp, bic.
+
+b)
+```{r}
+final_bad = c("Operating.System", bad)
+lt = laptops[, !(names(laptops) %in% final_bad)]
+out = regsubsets(Price~., data=lt, method = 'forward')
+plot(out, scale = "adjr2")
+```
+
+c)
+```{r}
+best_model = regsubsets(Price~., data=lt, method='exhaustive')
+summary(best_model)
+mallows = summary(best_model)$cp
+which.min(mallows)
+```
+```{r}
+best = c('Installed.Memory', 'Processor.Speed', 'Max.Horizontal.Resolution', 'Manufacturer', 'Warranty.Days', 'Price')
+
+lt = laptops[, (names(laptops) %in% best)]
+best_lm = lm(Price~., data = lt)
+summary(best_lm)
+```
+^Best model
+
+
+8)
+```{r}
+predicted = predict(best_lm)
+plot(laptops$Price, predicted, xlab="Actual Prices")
+```
+I would hope for a more linear fit from my best model. I am concerned that as the prices increase, the actual prices seem to differ more from the predicted price by a large amount. Though there are not that laptops in the higher range.
+
+b)
+```{r}
+sres = rstandard(best_lm)
+plot(laptops$Installed.Memory, sres)
+plot(laptops$Processor.Speed, sres)
+plot(laptops$Infrared, sres)
+plot(laptops$External.Battery, sres)
+plot(laptops$Operating.System, sres)
+plot(laptops$Manufacturer, sres)
+
+plot(laptops$Warranty.Days, sres)
+plot(predicted, sres)
+qqnorm(sres)
+```
+
+The residual plots do not indicate any major issues. The residuals are a bit high, going slightly over 3 sometimes. They appear to be randomly distributed, though its hard to tell with the boxplots. The qqplot seems fine, it shows a linear shape.
+
+

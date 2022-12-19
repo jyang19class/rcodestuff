@@ -1,0 +1,211 @@
+---
+title: "R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+1)
+
+a) Target population could be all 1/4 liter bottles of that specific brand of cough syrup stored within a reasonable temperature range compared to the study population.
+
+b)Study population could be 1/4 liter cough syrup bottles of that brand randomly selected from each temperature within a reasonable storage range.
+
+c)Seems to be preselected since there is only one bottle for each temperature from 14 to 30 degrees C. 
+
+d)
+```{r}
+shelf_life = read.table('shelflif.txt', header = T)
+life = shelf_life$ShelfLife
+temp = shelf_life$Temp
+plot(temp, life)
+```
+It seems reasonable for linear regression. The plot looks linear. There might be traces of a non-linear shape but I wouldn't conclude anything.
+
+e)
+NH: beta1 = 0       AH: beta1 =/= 0
+```{r}
+SSX = 484.5
+SSY = 96294.9
+SXY = -6663.49
+SSE = SSY - (SXY)^2/SSX
+sd = sqrt(SSE/16)
+beta1 = SXY/SSX
+se = sd/sqrt(SSX)
+tc = beta1/se
+pt(tc, 16)*2
+```
+P-value is 5.932e-12. Since the p-value < 0.05, we reject the NH at the 95% confidence level and conclude the shelf life is related to temperature.
+
+f) 
+```{r}
+beta0 = 11341/18 - beta1*387/18
+beta0 
+beta0 + 0*beta1
+```
+The estimate for average shelf life at 0 degrees is 925.7522 days though it is an extrapolation. It would not be reasonable to use this estimate.
+
+g)
+```{r}
+fifteen = beta0 + 15*beta1
+t = qt(.975, 16)
+xbar = 387/18
+yse = sd*sqrt(1/18+(15-xbar)^2/SSX)
+lower = fifteen - t*yse
+upper = fifteen + t*yse
+fifteen
+lower
+upper
+```
+Estimate for average self life when stored at 15 degrees is 719.4522 days
+C[705.7979 <= muy(15) <= 733.1066] = 0.95
+
+
+h)
+```{r}
+lower = beta1 - t*se
+upper = beta1 + t*se
+lower 
+upper
+```
+C[-15.39514 <= beta1 <= -12.1115] = 0.95
+
+Since 0 is not in the confidence interval and agrees with our hypothesis test in e), we can conclude that there is a relationship between shelf life and storage temperature
+
+i)
+NH: muy(13) <= 650        AH: muy(13) > 650
+```{r}
+thirteen = beta0 + beta1*13
+muyse = sd*sqrt(1/18+(13-xbar)^2/SSX)
+tc = (thirteen - 650)/muyse
+pt(tc, 16, lower.tail = F)
+```
+Since p-value < 0.05, we reject NH and conclude at a 95% confidence level that the average shelf life for bottles stored at 13 degrees C is at least 650 days
+
+
+j)
+```{r}
+lower = thirteen - t*muyse
+upper = thirteen + t*muyse
+upper 
+lower
+```
+C[730.6094 <= muy(13) <= 763.3084] = 0.95
+Since values 650 and less are not in the 95% confidence interval, we can reject NH and conclude that the average shelf life of a bottle stored at 13 deg C is at least 650 days
+
+
+2)
+
+a)
+```{r}
+SSR = SSY-SSE
+MSR = SSR
+MSE = SSE/16
+MSY = SSY/17
+Fc = MSR/MSE
+aov_table = matrix(c(1, SSR, MSR, Fc, 16, SSE, MSE, NA, 17, SSY, MSY, NA), ncol = 4, byrow = T)
+colnames(aov_table) = c('DF', 'Sum Sq', 'Mean Sq', 'F value')
+rownames(aov_table) = c('Regression', 'Error', 'Total')
+aov_table
+```
+
+b)
+```{r}
+pf(Fc, 1, 16, lower.tail = F)
+```
+P-value is 5.932e-12. The p-value is very close to zero so we likely reject the NH. 
+
+c)
+```{r}
+tc = beta1*sqrt(SSX)/sd
+tc
+2*pt(tc, 16)
+```
+P-value is 5.932e-12. The p-value is very close to zero so we likely reject the NH. 
+
+d)
+```{r}
+Fc == tc^2
+Fc
+tc^2
+```
+F equals tc squared. P-value from both is 5.932e-12.
+
+e)We conclude that beta1 =/= 0  with 99% confidence (could be more or less, p-value very small.
+
+f)
+```{r}
+se = sd/sqrt(SSX)
+t = qt(.995, 16)
+lower = beta1 - t*se
+upper = beta1 + t*se
+lower
+upper
+```
+C[-16.0154 <= beta1 <= -11.4912] = 0.99
+Since 0 is not in the interval or even close, we can conclude beta1 is not 0 at a 99% confidence level.
+
+g) In b) and c), we used an f-test and a t-test on the null hypothesis that beta1 equals 0. Both tests provided a p-value of 5.932e-12, which suggests to reject the NH. We showed that Fc equals tc^2 and confirmed both provided the same p-value. In f), we found a 99% confidence interval for beta1 that showed 0 was not in the interval. This further confirmed that beta1 is not 0.
+
+
+3)
+a)
+```{r}
+exam = read.table('Exam2004.txt', header = T)
+fin = exam$FIN
+mid = exam$MT
+n = nrow(exam)
+lm1 = lm(FIN ~ MT, data=exam)
+summary(lm(fin~mid))
+```
+muy(x) hat = 46.6088 + 0.4253x
+
+b)
+
+```{r}
+tstar = sqrt(2*qf(0.95,2,n-2))
+beta1 = summary(lm1)$coefficients[2]
+beta0 = summary(lm1)$coefficients[1]
+SSX = sum((mid-mean(mid))^2)
+sigma_hat = summary(lm1)$sigma
+se = sigma_hat*sqrt(1/n+(mid-mean(mid))^2/SSX)
+y1 = beta0 + beta1*mid
+y1 = lm1$fitted
+upper = y1 + tstar*se
+lower = y1 - tstar*se
+
+plot(mid, fin, xlab = 'Midterm', ylab = 'Final')
+abline(lm1)
+lines(sort(mid), sort(upper), lty=2)
+lines(sort(mid), sort(lower), lty=2)
+```
+
+
+
+c)
+```{r}
+fit40 = beta0 + beta1*40
+fit60 = beta0 + beta1*60
+fit80 = beta0 + beta1*80
+tstar = qt(0.975, n-2)
+
+interval40 = tstar*sigma_hat*sqrt(1/n + 1 + (40-mean(mid))^2/SSX)
+
+interval60 = tstar*sigma_hat*sqrt(1/n + 1 + (60-mean(mid))^2/SSX)
+
+interval80 = tstar*sigma_hat*sqrt(1/n + 1 + (80-mean(mid))^2/SSX)
+
+c(fit40+interval40, fit40-interval40)
+c(fit60+interval60, fit60-interval60)
+c(fit80+interval80, fit80-interval80)
+
+t = (80-fit60)/(sigma_hat*sqrt(1+1/n+((60-mean(mid))^2)/SSX))
+pt(t, n-2, lower.tail = F)
+```
+Prediction interval for student who scored:
+40 on midterm is (43.5125, 83.7253)
+60 on midterm is (52.3891, 91.8589)
+80 on midterm is (60.7394, 100.5186)
+
+The probability that a student scores an 80 or above on the final when they scored a 60 on the midterm is 0.2113
+

@@ -1,0 +1,201 @@
+---
+title: "R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+1)
+
+4.4.1)
+```{r}
+table = read.table('table445.txt', header = T)
+Y = table$Strength
+ones = c(1,1,1,1,1,1,1,1,1,1)
+X = matrix(data = c(ones,table$Temp, table$Pres), nrow = 10)
+#colnames(x) = c("Temp", "Pres")
+Y
+X
+```
+^Y is the vector, X is the matrix
+
+4.4.2)
+```{r}
+Xt = t(X)
+XtX = Xt %*% X
+XtY = Xt %*% Y
+print('X^tX')
+XtX
+print('X^tY')
+XtY
+```
+Matrices above^
+
+4.4.3)
+```{r}
+XtX_inverse = solve(XtX)
+beta = XtX_inverse %*% XtY
+beta
+```
+beta hat^ These values for beta hat are the same as the ones in exhibit 4.4.4
+
+4.4.4)
+```{r}
+SSY = sum((Y-mean(Y))^2)
+x1 = X[,2]
+x2 = X[,3]
+SSX1 = sum((x1-mean(x1))^2)
+SSX2 = sum((x2-mean(x2))^2)
+SSY
+SSX1
+SSX2
+```
+SSY = 547.161
+SSX1 = 7090
+SSX2 = 115.6
+
+4.4.6)
+```{r}
+e = Y-X%*%beta
+SSE = t(e)%*%e
+sigma = sqrt(SSE/(length(Y)-2-1))
+sigma
+
+```
+sigma hat = 1.1169
+population sigma is 1.7076
+sigma hat underestimates sigma by about 0.59
+
+4.4.7)
+```{r}
+estimate = beta0 + 300*beta1 + 16*beta2
+population = -5 + 300*.2 + 16*-1
+estimate
+population
+```
+
+muy(300, 16) hat is 38.4715. The estimated value is fairly close to the population value, only underestimated by 0.53.
+
+4.4.10)
+```{r}
+estimate = beta0 + 280*beta1 + 18*beta2
+estimate
+```
+muy(280, 18) hat = 32.59673
+
+4.4.12) 
+```{r}
+y_estimate = beta0 + 250*beta1 + 16*beta2
+pnorm((31-y_estimate)/sigma, lower.tail = F)
+```
+About 4.54% of containers have a strength greater than 31 units if they are produced at a temperature of 250 degrees C and presure of 16 psi.
+
+
+
+
+2)
+```{r}
+senic=read.table("http://www.utstat.toronto.edu/~brunner/data/legal/openSENIC.data.txt")
+senic=senic[,-2]
+senic=na.omit(senic)
+```
+
+```{r}
+#beta1: nbeds
+#beta2: nurses
+#beta3: lngstay
+#beta4: age
+Y = senic$infpercent
+ones = c(rep(1, nrow(senic)))
+X = matrix(c(ones, senic$nbeds, senic$nurses, senic$lngstay, senic$age), nrow = nrow(senic))
+Xt = t(X)
+XtX = Xt %*% X
+XtY = Xt %*% Y
+XtX_inverse = solve(XtX)
+beta = XtX_inverse %*% XtY
+e = Y - X %*% beta
+et = t(e)
+SSE = et %*% e
+sigma = sqrt(SSE/(nrow(senic)-4-1))
+print('X^tX')
+XtX
+print('X^tY')
+XtY
+print('beta hat')
+beta
+print('sigma hat')
+sigma
+```
+```{r}
+sigma = sigma[1]
+beta0_error = sigma*sqrt(XtX_inverse[1,1])
+beta1_error = sigma*sqrt(XtX_inverse[2,2])
+beta2_error = sigma*sqrt(XtX_inverse[3,3])
+beta3_error = sigma*sqrt(XtX_inverse[4,4])
+beta4_error = sigma*sqrt(XtX_inverse[5,5])
+beta0_error
+beta1_error
+beta2_error
+beta3_error
+beta4_error
+```
+```{r}
+lm1 = lm(infpercent~nbeds + nurses + lngstay + age, data = senic)
+summary(lm1)
+```
+Ordering of variables
+beta1: nbeds
+beta2: nurses
+beta3: lngstay
+beta4: age
+
+X^tX, X^tY, beta hat are above the error part ^^
+sigma hat = 1.0732
+
+se of beta0: 1.374
+se of beta1: 0.001561002
+se of beta2: 0.002132096
+se of beta3: 0.06240142
+se of beta4: 0.02600385
+
+Results are the same as in lm()
+
+
+
+2)
+```{r}
+sres = rstandard(lm1)
+plot(senic$nbeds, sres,pch=20,xlab='nbeds',ylab='standardized residual', main='Rstandard versus nbeds')
+plot(senic$lngstay, sres,pch=20,xlab='lngstay',ylab='standardized residual', main='Rstandard versus lngstay')
+plot(senic$age, sres,pch=20,xlab='age',ylab='standardized residual', main='Rstandard versus age')
+plot(senic$nurses, sres,pch=20,xlab='nurses',ylab='standardized residual', main='Rstandard versus nurses')
+
+plot(lm1$fitted.values, sres,pch=20,xlab='fitted',ylab='standardized residual', main='Rstandard versus fitted')
+
+boxplot(sres~senic$region, names = c('NorthCentral', 'NE', 'South', 'West'), xlab = 'Region')
+
+qqnorm(sres,pch=1,xlab='Normalized Value',ylab='Standardized Residual',
+main='QQ Plot of Standardized Residuals')
+```
+NE = NorthEast, couldn't fit on box plot
+The model seems like a good fit for the data. The residuals appear to be fairly randomly distributed for each of the covariates and the fitted values. The QQ-plot of the residuals is linear. Each region has similar ranges of residual values.
+
+3)
+```{r}
+df = data.frame(nbeds=531,nurses=442,lngstay=9.1,age=55)
+
+a = as.numeric(c(1, df))
+pred=as.numeric(t(a) %*% beta)
+se=as.numeric(sigma*sqrt(t(a) %*% XtX_inverse %*% a))
+pred+c(0,-1,1)*qt(0.995,nrow(senic)-4-1)* se
+pse=as.numeric(sigma*sqrt(1+t(a) %*% XtX_inverse %*% a))
+pred+c(0,-1,1)*qt(0.95,nrow(senic)-4-1)* pse
+
+                
+predict.lm(lm1, df, interval = 'confidence', level = 0.99)
+predict.lm(lm1, df, interval = 'prediction', level = 0.90)
+```
+i) 99% confidence interval for mean infpercent with above parameters is (4.1717, 5.7870)
+ii) 90% prediction interval for infpercent with above parameters is (3.1237, 6.8349)
+
+We care more about the prediction interval. We want to estimate infpercent for this particular new hospital.

@@ -1,0 +1,214 @@
+---
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+Problem 1.6.1
+```{r}
+table = scan('TABLE164.txt')
+mean_table = mean(table)
+t = qt(.1, length(table)-1)
+low_bound = mean_table + t*sqrt(var(table))/sqrt(length(table))
+high_bound = mean_table - t*sqrt(var(table))/sqrt(length(table))
+mean_table
+low_bound
+high_bound
+high_bound-low_bound
+```
+
+a) Sample mean = 6.989, Confidence Interval: 6.140 <= μ <= 7.838
+b)C[6.140 <= μ <= 7.838] = .80
+```{r}
+t = qt(.05, length(table)-1)
+low_bound = mean_table + t*sqrt(var(table))/sqrt(length(table))
+low_bound
+```
+c) 95% lower confidence bound is 5.889
+d) C[5.889<= μ] = .95
+e) We are 95% confident that the true population mean lies above 5.889.
+f)
+
+
+g)NH: σ <= 5.0    AH: σ > 5.0     α=0.05
+```{r}
+chisq = 29*var(table)/25
+p = pchisq(chisq, 29, lower.tail = F)
+p
+```
+Since P>α, I do not reject the null hypothesis.
+
+
+
+```{r}
+chi_upper = qchisq(.95, 29)
+chi_lower = qchisq(.05, 29)
+upper = sqrt(29*var(table)/chi_upper)
+lower = sqrt(29*var(table)/chi_lower)
+upper
+lower
+```
+h)C[2.925 <= σ <= 4.534] = .90. We can accept the null hypothesis at a 90% confidence level, since the 90% confidence interval is all less than 5
+
+
+
+```{r}
+t=qt(.995, length(table)-1)
+low_bound = mean_table - t*sqrt(var(table))/sqrt(length(table))
+high_bound = mean_table + t*sqrt(var(table))/sqrt(length(table))
+low_bound
+high_bound
+high_bound-low_bound
+```
+
+i)interval is [5.205, 8.772]. Width is 3.566, width in a) was 1.697. Width is greater with more confidence. 
+
+
+
+
+Problem 1.81
+```{r}
+A = matrix(c(9,4,3,4,16,8,3,8,12), nrow = 3, ncol = 3, byrow = TRUE)
+A_transpose = t(A)
+A_transpose
+```
+a) ^^^^^ See Above
+
+b)C+B^T : Defined, same dimensions
+  B+C : Undefined, different dimensions
+  B+C^T : Defined, same dimensions
+  AC : Defined, # of A columns == # of C rows
+  CA : Undefined, # of C columns != # of A rows
+  B-C^T : Defined, same dimensions
+  
+  
+  
+```{r}
+A = matrix(c(9,4,3,4,16,8,3,8,12), nrow = 3, ncol = 3, byrow = TRUE)
+B = matrix(c(12,14,3,4,31,5,5,13,21,6,2,31), nrow = 4, ncol = 3, byrow = TRUE)
+C = matrix(c(12,23,17,22,24,28,19,20,31,30,41,27), nrow = 3, ncol = 4, byrow = TRUE)
+print('C+B^T')
+C + t(B)
+print('B+C^T')
+B+t(C)
+print('AC')
+A %*% C
+print('B-C^T')
+B - t(C)
+```
+c) See Above ^^
+
+
+
+Problem 1.83
+```{r}
+x = matrix(c(1,2,1,3,1,1,1,4), nrow = 4, ncol = 2, byrow = TRUE)
+y = matrix(c(1,6,3,2))
+```
+a)(X^T)= See Below
+```{r}
+t(x) %*% x
+```
+
+b) (X^T)y = See Below
+```{r}
+t(x) %*% y
+```
+
+c)((X^T)X)^-1 = See Below
+```{r}
+solve(t(x) %*% x)
+```
+
+d)$$X^TXB = X^Ty$$
+```{r}
+left = t(x) %*% x
+right = t(x) %*% y
+solve(left, right)
+```
+B/Beta = ^^
+
+
+Problem 1.10.8
+Lower confidence bound gives the appropriate information. We care about if the new strength is better than the old strength, the upper bound doesn't matter.
+
+
+Problem 1.10.9
+Null Hypothesis: μy <= 540, Alternative Hypothesis: μy > 540
+
+
+Problem 1.10.10
+α= 0.05
+```{r}
+C = qt(.95, 20-1)
+Sample_mean = 12000/20
+tc = (Sample_mean - 540)/(14/sqrt(20))
+tc
+C
+```
+We reject the null hypothesis since tc > C.
+
+
+Problem 1.10.11
+```{r}
+pt(tc, 20-1, lower.tail = F)
+```
+P-value gives more reason to reject the NH. The probability of obtaining the sample mean or a value more extreme if the null hypothesis is true is almost impossible.
+
+
+
+
+Exam Problem
+```{r}
+exam = read.table('EXAM.txt', header = T)
+fin = exam$FIN
+mid = exam$MID
+```
+Calculate 95% Confidence Interval
+a)
+```{r}
+mid_mean = mean(mid)
+mid_std = sqrt(var(mid))
+z = qnorm(.975)
+t = qt(.975, length(mid))
+width = t*mid_std/sqrt(length(mid))
+upperb = mid_mean + width
+lowerb = mid_mean - width
+upperb
+lowerb
+```
+
+
+
+b)
+```{r}
+fin_mean = mean(fin)
+fin_std = sqrt(var(fin))
+z = qnorm(.975)
+t = qt(.975, length(fin))
+width = t*fin_std/sqrt(length(fin))
+upperb = fin_mean + width
+lowerb = fin_mean - width
+upperb
+lowerb
+```
+
+Hypothesis Test
+
+Null Hypothesis: Fin Mean = Mid Mean
+Alternative Hypothesis: Fin Mean =/= Mid Mean
+α= 0.1
+```{r}
+t.test(fin, mid)
+C = qt(.95, 44.551)
+C
+```
+Since |t| is not greater than C, we do not have enough evidence to reject the null hypothesis.
+
+
+Scatterplot
+```{r}
+plot(fin, mid, xlab = 'Final Scores', ylab = 'Mid Scores')
+lines(fin, lm(mid~fin)$fitted)
+```
+Straight line regression seems justified. There appears to be a linear relationship midterm and final scores outside of the one outlier near mid:60, fin:90.

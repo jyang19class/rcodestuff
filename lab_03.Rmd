@@ -1,0 +1,144 @@
+---
+title: 'Lab 3: Indexing and Iteration'
+output: pdf_document
+---
+
+Name:  Jeffrey Yang
+
+Collaborated with:  Ziang, Noah, Irene
+
+This lab is to be done in the lab session (completed outside of class if need be). You can collaborate with your classmates, but you must identify their names above, and you must submit **your own** lab as an knitted PDF/html file. The deadline for each lab session is
+
+- **Deadline for 320.404: W 11:59 PM**
+- **Deadline for 320.406: F 11:59 PM**
+- **Deadline for 320.407: W 11:59 PM**
+
+
+**Partial help has been provided in code chunks with `eval=FALSE` option. Make sure to delete this option when knitting your solution.**  
+
+```{r}
+## For reproducibility --- don't change this!
+set.seed(01232018)
+```
+
+Some R basics
+===
+
+- **1a.** Let's start easy by working through some R basics. Define a variable `x.vec` to contain the integers 1 through 100. Check that it has length 100 (with `length()` function). Add up the numbers in `x.vec`, by calling `sum()` function.
+```{r}
+x.vec = c(1:100)
+length(x.vec)
+sum(x.vec)
+```
+
+
+
+- **1b.** Convert `x.vec` into a matrix with 20 rows and 5 columns, and store this as `x.mat`. Here `x.mat` should be filled out in the default order (column major order). Check the dimensions of `x.mat` (hit: `dim()`), and the data type as well (hit: `typeof()`). Compute the sums of each of the 5 columns of `x.mat`, by calling 'colSums'. Check (using a comparison operator) that the sum of column sums of `x.mat` equals the sum of `x.vec`.
+```{r}
+x.mat = matrix(x.vec,nrow = 20, ncol = 5) 
+dim(x.mat)
+typeof(x.mat)
+colSums(x.mat)
+sum(colSums(x.mat))==sum(x.vec)
+```
+
+- **1c.** Using Boolean indexing, modify `x.vec` so that every even number in this vector is incremented by 10, and every odd number is left alone. This should require just a single line of code. Print out the result to the console. **Challenge**: show that `ifelse()` can be used to do the same thing, again using just a single line of code.
+```{r}
+x.vec[x.vec %% 2 == 0] = x.vec[x.vec %% 2 == 0] + 10
+x.vec2 = c(1:100)
+ifelse(x.vec2 %% 2 == 0, x.vec2 +10, x.vec2)
+x.vec
+```
+
+
+- **1d.** Consider the list `x.list` created below. Complete the following tasks, each with a single line of code: extract all but the second element of `x.list`---seeking here a list as the final answer.  Extract the second element of `x.list` as a vector, and then extract the first 10 elements of this vector---seeking here a vector as the final answer. Note: pay close attention to what is asked and use either single brackets `[ ]` or double brackets ``[[ ]]`` as appropriate.
+
+```{r}
+x.list = list(rnorm(6), letters, sample(c(TRUE,FALSE),size=4,replace=TRUE))
+
+# Extract all but the second element
+x.list[-2]
+#Extract the second element of `x.list` as a vector, and then extract the first 10 elements of this vector; hit: [[]]
+x.list[[2]][1:10]
+
+```
+
+Prostate cancer data set
+===
+
+OK, moving along to more interesting things! We're going to look at the prostate cancer data set: 9 variables measured on 97 men who have prostate cancer (from the book [The Elements of Statistical Learning](http://statweb.stanford.edu/~hastie/ElemStatLearn/)):
+
+1. `lpsa`: log PSA score
+2. `lcavol`: log cancer volume
+3. `lweight`: log prostate weight
+4. `age`: age of patient
+5. `lbph`: log of the amount of benign prostatic hyperplasia
+6. `svi`: seminal vesicle invasion
+7. `lcp`: log of capsular penetration
+8. `gleason`: Gleason score 
+9. ` pgg45`: percent of Gleason scores 4 or 5 
+
+To load this prostate cancer data set into your R session, and store it as a matrix `pros.dat`:
+
+```{r}
+pros.dat =
+  as.matrix(read.table("pros.dat"))
+# if you see an error saying that cannot open the connection, you need to either copy pros.dat to your current working directory, or set your working directory to the folder that contain pros.dat 
+```
+
+Computing standard deviations using iteration
+===
+
+- **2a.** Using on-the-fly Boolean indexing, extract the rows of `pros.dat` that correspond to patients with SVI, and the rows that correspond to patients without it. Call the resulting matrices `pros.dat.svi` and `pros.dat.no.svi`, respectively. Display the dimensions of these matrices. Compute the column means of `pros.dat.svi` and `pros.dat.no.svi`, stored into vectors called `pros.dat.svi.avg` and `pros.dat.no.svi.avg`, respectively. For each matrix, this should require just a single call to a built-in R function. Display these column means.
+
+```{r}
+#hit
+pros.dat.svi = pros.dat[pros.dat[,"svi"]==T,]
+pros.dat.no.svi = pros.dat[pros.dat[,"svi"]==F,]
+dim(pros.dat.no.svi)
+dim(pros.dat.svi)
+pros.dat.svi.avg = colMeans(pros.dat.svi)
+pros.dat.no.svi.avg = colMeans(pros.dat.no.svi)
+pros.dat.svi.avg
+pros.dat.no.svi.avg
+```
+
+- **2b.** Take a look at the starter code below. The first line defines an empty vector `pros.dat.svi.sd` of length `ncol(pros.dat)` (of length 9). The second line defines an index variable `i` and sets it equal to 1. Write a third line of code to compute the standard deviation of the `i`th column of `pros.dat.svi`, using `sd()` function, and store this value in the `i`th element of `pros.dat.svi.sd`. 
+ 
+```{r}
+pros.dat.svi.sd = vector(length=ncol(pros.dat))
+i = 1
+pros.dat.svi.sd[i] = sd(pros.dat.svi[,i])
+pros.dat.svi.sd
+```
+
+- **2c.** Repeat the calculation as in the previous question, but for patients without SVI. That is, produce three lines of code: the first should define an empty vector `pros.dat.no.svi.sd` of length `ncol(pros.dat)` (of length 9), the second should define an index variable `i` and set it equal to 1, and the third should fill the `i`th element of `pros.dat.no.svi.sd` with the standard deviation of the `i`th column of `pros.dat.no.svi`.
+```{r}
+pros.dat.no.svi.sd = vector(length=ncol(pros.dat))
+i = 1
+pros.dat.no.svi.sd[i] = sd(pros.dat.no.svi[,i])
+pros.dat.no.svi.sd
+```
+
+
+- **2d.** Write a `for()` loop to compute the standard deviations of the columns of `pros.dat.svi` and `pros.dat.no.svi`, and store the results in the vectors `pros.dat.svi.sd` and `pros.dat.no.svi.sd`, respectively, that were created above. Note: you should have a single `for()` loop here, not two for loops. And if it helps, consider breaking this task down into two steps: as the first step, write a `for()` loop that iterates an index variable `i` over the integers between 1 and the number of columns of `pros.dat` (don't just manually write 9 here, pull out the number of columns programmatically), with an empty body. As the second step, paste relevant pieces of your solution code from Q2b and Q2c into the body of the `for()` loop. Print out the resulting vectors `pros.dat.svi.sd` and `pros.dat.no.svi.sd` to the console. Comment, just briefly (informally), by visually inspecting these standard deviations and the means you computed in Q2a: which variables exhibit large differences in means between the SVI and non-SVI patients, relative to their standard deviations?
+```{r}
+for (i in 1:ncol(pros.dat)){
+  pros.dat.svi.sd[i] = sd(pros.dat.svi[,i])
+  pros.dat.no.svi.sd[i] = sd(pros.dat.no.svi[,i])
+}
+pros.dat.svi.sd
+pros.dat.no.svi.sd
+pros.dat.svi.avg
+pros.dat.no.svi.avg
+```
+Lcavol, pgg45, lcp, and lpsa has large difference in means relative to sd
+
+- **2e.**(Optional) The code below computes the standard deviations of the columns of `pros.dat.svi` and `pros.dat.no.svi`, and stores them in `pros.dat.svi.sd.master` and `pros.dat.no.svi.sd.master`, respectively, using `apply()`. (We'll learn `apply()` and related functions a bit later in the course.) Remove `eval=FALSE` as an option to the Rmd code chunk, and check using `all.equal()` that the standard deviations you computed in the previous question equal these "master" copies. Note: use `check.names=FALSE` as a third argument to `all.equal()`, which instructs it to ignore the names of its first two arguments. (If `all.equal()` doesn't succeed in both cases, then you must have done something wrong in computing the standard deviations, so go back and fix them!)
+
+```{r}
+pros.dat.svi.sd.master = apply(pros.dat.svi, 2, sd)
+pros.dat.no.svi.sd.master = apply(pros.dat.no.svi, 2, sd)
+all.equal(pros.dat.no.svi.sd.master, pros.dat.no.svi.sd,check.names=FALSE)
+all.equal(pros.dat.svi.sd.master, pros.dat.svi.sd,check.names=FALSE)
+```

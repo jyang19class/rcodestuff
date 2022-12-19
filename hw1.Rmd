@@ -1,0 +1,33 @@
+---
+title: "R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+
+```{r}
+SAT = read.csv('SATscores.csv')
+y= SAT$SAT
+meany = mean(y)
+stdy = sqrt(var(y))
+print(meany)
+print(stdy)
+
+```
+```{r}
+stde = stdy/sqrt(length(y))
+print(stde)
+```
+```{r}
+hist(y)
+```
+```{r}
+qqnorm(y)
+```
+
+```{r}
+meany-1200
+2*stde
+```
+

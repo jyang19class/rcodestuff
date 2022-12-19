@@ -1,0 +1,143 @@
+---
+title: "R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+---
+```{r}
+library(faraway)
+library(dplyr)
+data("fat")
+fat = subset(fat,select = -c(brozek,density))
+train = fat %>% filter(row(fat)%%10 != 0)
+test  = fat %>% filter(row(fat)%%10 == 0)
+head(train) 
+head(test)
+```
+
+a)
+```{r}
+all_lm = lm(siri~., data=train)
+summary(all_lm)
+```
+Model^
+
+
+b)
+```{r}
+library(leaps)
+```
+```{r}
+select_lm = regsubsets(siri~., data=train)
+select_sum = summary(select_lm)
+select_sum
+data.frame(
+  Adj.R2 = which.max(select_sum$adjr2),
+  CP = which.min(select_sum$cp),
+  BIC = which.min(select_sum$bic)
+)
+```
+Adjusted R^2 and Mallows CP both indicate 8 predictors is the best, so lets go with 8 predictors.
+
+
+```{r}
+vselect_lm = lm(siri~weight+adipos+free+chest+abdom+thigh+ankle+forearm, data=train)
+summary(vselect_lm)
+```
+Model^
+
+
+c)
+```{r}
+require(pls)
+pcr_model = pcr(siri~., data=train, validation='CV')
+summary(pcr_model)
+which.min(RMSEP(pcr_model)$val[2,,])
+```
+7 principal components minimizes the adjusted cv from RMSEP
+
+
+d)
+```{r}
+pls_model = plsr(siri~., data=train, validation='CV')
+summary(pls_model)
+#pcr_model$coef[,,]
+#coefplot(pcr_model,ncomp=7)
+which.min(RMSEP(pls_model)$val[2,,])
+```
+4 principla compnents minimizes the adjCV in RMSEP, so we use that
+
+
+e)
+```{r}
+require(glmnet)
+x = data.matrix(train[,2:16])
+y = train$siri
+#x = scale(x)
+fit = glmnet(x,y)
+plot(fit)
+cvfit=cv.glmnet(x,y,nfolds=20)
+plot(cvfit)
+```
+```{r}
+cvfit$lambda.min
+coef(cvfit, s = "lambda.min")
+```
+Lambda to use = 0.1157969
+
+
+
+Predictions
+```{r}
+mean((test$siri-predict.lm(all_lm, test))^2)
+mean((test$siri-predict.lm(vselect_lm, test))^2)
+mean((test$siri-predict(pcr_model, ncomp = 7, test))^2)
+mean((test$siri-predict(pls_model, ncomp = 4, test))^2)
+mean((test$siri-predict.glmnet(fit, data.matrix(test[2:16]),s=cvfit$lambda.min))^2)
+```
+test data MSE for:
+
+full model = 1.280357
+variable selected model = 1.461886
+PCR = 1.100088
+PLS = 1.264477
+Lasso = 1.309572
+
+The full model, lasso model, and PLS model have similar test data MSEs. The PCR model shows a more noticeable improvement over the full model, while the variable selected model seems worse. Overall, they differ at most by about 1-2 tenths, which likely suggests that the model chosen doesn't matter too much.
+
+
+Q2)
+
+a)
+```{r}
+require(glmnet)
+possum = read.csv('possum.csv', header = T)
+possum[,2] = as.factor(possum[,2])
+
+full_model = glm(pop~sex+head_l+skull_w+total_l+tail_l,family=binomial, data=possum)
+summary(full_model)
+part_model = glm(pop~sex+skull_w+total_l+tail_l,family=binomial, data=possum)
+summary(part_model)
+```
+The parameter estimates match for both of the models.
+
+
+```{r}
+anova(part_model, full_model,test='Chi')
+```
+
+Since the p-value>0.05, we do not have enough evidence to say the full model is better than the partial model. We can keep the partial model.
+
+
+b)
+```{r}
+df = data.frame(sex='m', skull_w=63, total_l=83, tail_l=37)
+predict(part_model,df,type='response')
+p1 = predict(part_model,df,type='link',se.fit = T)
+
+eta=p1$fit+1.96*p1$se.fit;exp(eta)/(1+exp(eta))
+eta=p1$fit-1.96*p1$se.fit;exp(eta)/(1+exp(eta))
+```
+
+Probability for the specified possum to be from Victoria is 0.0062
+95% confidence interval for that probability is (0.0005, 0.0737)

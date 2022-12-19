@@ -1,0 +1,123 @@
+---
+title: "R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+---
+PLEDGE:I will neither give nor receive unauthorized aid in this exam.
+SIGNED: Jeffrey Yang
+
+1) 
+
+a)C
+b)A
+c)D
+d)B
+e)B
+f)A
+g)B
+h)D
+i)C
+
+
+2)
+a)
+```{r}
+t = qt(.975, 15-1)
+upper = 48.7 + t*6.9/sqrt(15)
+lower = 48.7 - t*6.9/sqrt(15)
+upper
+lower
+```
+
+C[44.8789 <= mu of y <= 52.5211] = 0.95
+
+
+b)
+NH: mu of x = 60       AH: mu of x < 60
+```{r}
+C = qt(.99, 19-1)
+tc = (57.9-60)/(8.3/sqrt(19))
+tc
+C
+```
+Since Tc > -C, we do not have enough evidence to reject the null hypothesis. For now, we accept the null hypothesis. 
+
+
+C)
+```{r}
+numerator = (15-1)*(6.9^2) + 19-1*(8.3^2)
+denominator = 15+19-2
+pooledSD = sqrt(numerator/denominator)
+pooledSD
+t = qt(.95, 15+19-2)
+upper = (57.9-48.7) + t*pooledSD*sqrt((1/15)+(1/19))
+lower = (57.9-48.7) - t*pooledSD*sqrt((1/15)+(1/19))
+upper
+lower
+t
+```
+Common SD = 4.3897
+C[6.6317 <= mu of x - mu of y <= 11.7683] = 0.90
+
+D)
+NH: mu of x = mu of y       AH: mu of x =/= mu of y
+```{r}
+t = (57.9 - 48.7)/(pooledSD*sqrt((1/15)+(1/19)))
+pt(t, 15+19-2, lower.tail = F)*2
+```
+There is strong evidence against the null hypothesis. The p-value from the hypothesis test is very close to zero and the confidence interval of the differences in means does not contain 0 in it.
+
+
+3)
+a)
+```{r}
+table = read.table('EXAM2004.txt', header = T)
+x = table$MT
+y = table$FIN
+xbar = mean(x)
+ybar = mean(y)
+SSX = sum((x-xbar)^2)
+SSY = sum((y-ybar)^2)
+SXY = sum((x-xbar)*(y-ybar))
+xbar
+ybar
+SSX
+SSY
+SXY
+```
+xbar = 64.1428
+ybar = 73.8857
+SSX = 14456.29
+SSY = 5629.543
+SXY = 6147.571
+
+b)
+```{r}
+#Beta1 = SXY/SSX
+beta1 = SXY/SSX
+#Beta0 = ybar - beta1*xbar
+beta0 = ybar - beta1*xbar
+n = length(y)
+SSE = SSY - ((SXY)^2)/SSX
+sigmahat = sqrt(SSE/(n-2))
+beta1
+beta0
+sigmahat
+```
+beta1 hat = 0.4252
+beta0 hat = 46.6088
+sigmahat = 9.5588
+
+
+C)
+```{r}
+sum(pnorm(90.5, beta0+beta1*x, sigmahat)-pnorm(79.5, beta0+beta1*x, sigmahat))
+sum(x>=79.5 & x<=90.5)
+total = 0
+for (value in x){
+  total = total + pnorm(90.5, beta0+beta1*value, sigmahat)-pnorm(79.5, beta0+beta1*value, sigmahat)
+}
+total
+```
+The predicted number of students scoring between 79.5 and 90.5 is 8.4831. The actual amount was 8. If we take a conservative estimate of the predicted to be around 8, then the regression accurately predicted the number of students. 

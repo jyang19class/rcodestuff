@@ -1,0 +1,116 @@
+---
+title: "R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+---
+
+1) a)
+
+```{r}
+table = read.table('TABLE346.txt', header = T)
+x = table$Time
+y = table$Weight
+n = length(y)
+SSX = sum((x-mean(x))^2)
+SSY = sum((y-mean(y))^2)
+SXY = sum((x-mean(x))*(y-mean(y)))
+SSE = SSY - ((SXY)^2)/SSX
+beta1 = SXY/SSX
+beta0 = mean(y) - beta1*mean(x)
+sdhat = sqrt(SSE/(n-2))
+beta1
+beta0
+sdhat
+table
+```
+beta1 hat= 0.5302
+beta0 hat= -0.2273
+sdhat = 0.9166
+
+
+b)
+  1) The crystals grow on average 0.5302 grams per hour.
+```{r}
+beta0 + 15*(beta1)
+```
+  2)After 15 hours, the crystal is predicted to weigh 7.7264 grams.
+```{r}
+h12 = 10 * (beta0 + 12*beta1)
+h24 = 16 * (beta0+24*beta1)
+h24-h12
+```
+  
+  3)A 24 hours crystal will make $138.62 more than a 12 hours crystal
+  
+c)
+```{r}
+beta0 + beta1*19
+beta0 + beta1*25
+beta0 + beta1*40
+```
+Average weight for 19 hours: 9.8474 grams
+25 hours: 13.0289
+40 hours: can not be estimated using this regression since 40 hours is outside of our data
+
+
+d)
+```{r}
+beta1 = 7391396/224617600
+beta0 = 532.44 - 11364*beta1
+beta1
+beta0
+```
+  a)beta0 hat= 158.4897
+    beta1 hat = 0.0329
+    muy(x) = 158.4897 + 0.0329x
+    
+  b) They would be interested in Y(13,000). They want to compare to a car similar to the ones in the table that are driven 13,000 miles rather than the average of all vehicles driven 13,000 miles. Yhat(13,000) is estimated the same as muyhat(13,000)
+```{r}
+158.4897 + 0.0329*13000
+```
+  Yhat(13,000) = 586.1897
+  
+  c) We want to use muy(16000). muy(16000) is the average first year maintenence cost for all vehicles driven 16000 miles.
+
+
+
+2) a)
+```{r}
+exam = read.table("EXAM.txt", header = T)
+exam
+fin = exam$FIN
+mid = exam$MID
+fit = lm(fin~mid)
+summary(fit)
+```
+
+beta0 hat= -6.132
+beta1 hat= 1.082
+sd hat= 9.093
+
+b)
+```{r}
+res = resid(fit)
+plot(mid, res, xlab = 'Midterm Score', ylab = 'Residuals')
+```
+
+```{r}
+stdres = rstandard(fit)
+plot(mid, stdres, xlab = 'Midterm Score', ylab = 'Standardized Residuals')
+```
+
+It seems to be a good fit. The standardized residuals are distributed around -1 to 1 fairly randomly. There is likely an outlier with a standardized residual of above 3 around a midterm of 60.
+
+
+c)
+```{r}
+beta0 = -6.132
+beta1 = 1.082
+sdres = 9.093
+predicted = beta0 + beta1*70
+predicted 
+pnorm(75, predicted, sdres, lower.tail = F)
+```
+Predicted final score: 69.608
+There is a probability of 0.2766 that the student scores higher than a 75 on the final

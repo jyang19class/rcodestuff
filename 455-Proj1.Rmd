@@ -1,0 +1,272 @@
+---
+title: "R Notebook"
+output:
+  word_document: default
+  html_notebook: default
+  pdf_document: default
+---
+
+```{r}
+# Load dataset
+bball=read.csv("basketball.csv")
+# Look at dataset
+head(bball)
+```
+```{r}
+summary(bball)
+```
+a) Summary() provides summary statistics for each of the variables/columns.  For numerical variables (X, Team.Score, Opponent.Score), the 5 number summary and mean is shown. Head() shows the first 6 rows of the dataset. For catagorical variables (Team, Team.Location, Opponent, Team.Result), the number of items and class is shown.
+
+b) Tail() shows the last 6 rows
+```{r}
+tail(bball)
+```
+c)ncol gives the number of columns. nrow gives th number of rows. Number of columns is the number of variables in summary. Counting the columns in head or tail also tells the number of columns. nrow can be found by looking at the last tail number. Length in summary also gives the number of rows.
+```{r}
+ncol(bball)
+nrow(bball)
+```
+
+```{r}
+# Look at a single row
+bball[123, ]
+# Look at a single column
+#bball[ , 5]
+#bball$Team.Score
+# Look at a single entry
+bball[123, 5]
+bball$Team.Score[123]
+# Calculate mean, median, variance, and standard deviation
+mean(bball$Team.Score)
+median(bball$Team.Score)
+var(bball$Team.Score)
+sd(bball$Team.Score)
+```
+2 a) mean(bball$Team.Score) retrieves an element of bball with the specified name. mean(bball[,5]) retreives the fifth column and all rows. The first option can be more clear and easier to use. The second option can be useful if you want to use numbers like in a for loop or you do not have a specfied name.
+
+b) On 11/22/15 Old Dominion played Saint Josephs in a neutral location. Old Dominion lost, scoring only 64 points compared to 66 by the opponent.
+
+3 a)
+```{r}
+# Boring histogram
+hist(bball$Team.Score)
+# Fancy histogram
+hist(bball$Team.Score, breaks=5, main="I am a title", xlab="I am an x-axis label", col="grey", freq=FALSE)
+```
+Break determines the number of bars to use in the histogram, the number of bar divisions specifically. Freq determines whether the absolute frequency is the y axis or the density (proportion out of the total) is the y axis.
+
+
+b)
+```{r}
+boxplot(bball$Team.Score, ylab="Team Score", main= "Box Plot of Team Scores", col="blue")
+```
+
+c)
+```{r}
+hist(bball$Team.Score, freq=FALSE)
+curve(dnorm(x, mean=120, sd=20), add=T, col="blue", lwd=2)
+```
+
+Curve function draws the curve using the given mathematical function. Dnorm determines a normal distribution density function with a mean and sd. add=True is so the curve is added to the histogram
+
+d)
+```{r}
+hist(bball$Team.Score, freq=FALSE)
+lines(density(bball$Team.Score),col="red", lwd=2, lty=2)
+```
+Line function appears to take in points and draws lines between the points. Curves() seems to take in a mathematical function and computes points resulting in a smoother curve. Density is for looking at the distribution of our data, normal curve would be used when we want to look a how our function comapres to the normal distribution.
+
+d)
+```{r}
+hist(bball$Team.Score, freq=F)
+curve(dnorm(x, mean=mean(bball$Team.Score), sd = sd(bball$Team.Score)), add = T, col="Red")
+#lines(density(bball$Team.Score), col="Blue")
+```
+
+4 a)
+```{r}
+vec=c(1, 2, 3, "4")
+#vec +2
+```
+Having "4" in the vector turned the other elements in strings since only one type is allowed. Can't add 2 to strings
+b)
+```{r}
+vec=c(TRUE, FALSE, FALSE, TRUE)
+vec+2
+```
+A boolean has value 0 or 1. 2 was added to the booleans turning them into ints
+
+c)
+```{r}
+#my_subset=bball[Team=="North Carolina"|Team=="Duke", ]
+```
+Team element is defined as a column within the bball dataframe. $ should be used to access it.
+
+```{r}
+#my_subset=bball[bball$Team=="North Carolina", bball$Team=="Duke"]
+```
+bball$Team=="Duke" is after the comma, so it is trying to select columns. However, the equality doesn't make sense for columns
+
+```{r}
+#my_subset=bball[bball$Team="North Carolina"|bball$Team="Duke", ]
+```
+== should be used instead of =. == compares for equality, = assigns 
+
+```{r}
+my_subset=bball[bball$Team=="North Carolina"&bball$Team=="Duke", ]
+my_subset
+```
+One team cannot be two teams at once. | should be used, not &
+
+```{r}
+unc_games=which(bball$Team=="North Carolina")
+my_subset=bball[unc_games|bball$Team=="Duke", ]
+unc_games
+```
+We are using which() for unc games, but boolean comparision for Duke. This gives us two different vector sizes and can't be compared
+
+d)
+```{r}
+my_subset=bball[bball$Team=="North Carolina"|bball$Team=="Duke", ]
+my_subset
+```
+
+5 a)
+```{r}
+pnorm(0)
+qnorm(0)
+qnorm(1)
+```
+```{r}
+pnorm(100)
+#qnorm(100)
+```
+```{r}
+qnorm(pnorm(0))
+qnorm(pnorm(7))
+```
+```{r}
+pnorm(qnorm(0))
+pnorm(qnorm(0.5))
+```
+```{r}
+pnorm(0, sd=10)
+pnorm(0, mean=1, sd=10)
+```
+```{r}
+qnorm(0.05)
+qnorm(0.05, sd=10)
+qnorm(0.05, mean=1, sd=10)
+```
+b) qnorm() should take in a p-value that is between 0 and 1.
+
+
+
+```{r}
+bball$Total.Score=bball$Team.Score+bball$Opponent.Score
+```
+6 a)
+```{r}
+bball_unique = bball[bball$Team.Result == "Win",]
+```
+
+
+b) 
+```{r}
+feb_game = bball_unique[bball_unique$Date == '2/17/16' & bball_unique$Team == 'Duke' & bball_unique$Opponent == 'North Carolina', ]
+
+feb_game_score = bball[bball$X == feb_game$X, 'Total.Score']
+mean_total_score = mean(bball_unique$Total.Score)
+sd_total_score = sd(bball_unique$Total.Score)
+pnorm(feb_game_score, mean_total_score, sd_total_score, lower.tail = F)
+```
+46.11% of games are higher scoring than the UNC Duke game
+
+
+c)
+```{r}
+games_greater = sum(bball_unique$Total.Score > feb_game_score)
+total_games = nrow(bball_unique)
+games_greater/total_games
+```
+43.604% of games in the dataset were high scoring that the UNC/Duke game
+
+
+d) b) used the normal distribution to estimate the number of higher scoring games. c) uses the actual data to find the number of higher scoring games. The normal approximation seems reasonable since the two numbers are fairly close.
+
+
+7) a)
+
+```{r}
+unc_games = bball[bball$Team=="North Carolina",'Total.Score']
+stde = sd(unc_games)/sqrt(length(unc_games)) 
+t = (feb_game_score - mean(unc_games))/sd(unc_games)
+pt(t, length(unc_games)-1)
+```
+The Feb 17, 2016 UNC/Duke game was not particularly high scoring for a UNC game. The total score is only greater than 37.86% of other UNC games.
+
+8)
+```{r}
+unc_only = bball[bball$Team == 'North Carolina',]
+t = qt(.975, nrow(unc_only)-1)
+upper_bound = mean(unc_only$Team.Score) + t*sd(unc_only$Team.Score)/sqrt(nrow(unc_only))
+
+lower_bound = mean(unc_only$Team.Score) - t*sd(unc_only$Team.Score)/sqrt(nrow(unc_only))
+
+upper_bound
+lower_bound
+```
+
+C[78.572 <= μUNC points scored <= 85.956] = 0.95
+
+b)
+```{r}
+wins = sum(unc_only$Team.Result == 'Win')
+win_proportion = wins/nrow(unc_only)
+z = qnorm(.975)
+upper_bound = win_proportion + z*sqrt(win_proportion*(1-win_proportion)/nrow(unc_only))
+
+lower_bound = win_proportion - z*sqrt(win_proportion*(1-win_proportion)/nrow(unc_only))
+
+upper_bound
+lower_bound
+```
+C[0.6954 <= UNC win proportion <= 0.9517] = 0.95
+
+9)
+NH: p = 0.5       AH: p > 0.5
+```{r}
+prop.test(wins, nrow(unc_only), alternative = 'greater')
+```
+Since the p-value < 0.05, we can reject the null hypothesis. There is evidence at the 0.05 level that the true probability of UNC winning a given game in 2015-2016 is larger than 0.5
+
+b)
+NH: μUNC Points = μYale Points        AH: μUNC Points =/= μYale Points
+```{r}
+yale_only = bball[bball$Team == 'Yale',]
+t.test(unc_only$Team.Score, yale_only$Team.Score)
+```
+Since p-value < 0.05, we can reject the null hypothesis. I would say that UNC and Yale might not be equally good teams since the average points scored is not the same. Of course, defence matters so it is hard to tell.
+
+c)
+NH: PUNC win = PYale win        AH: PUNC win =/= PYale win
+```{r}
+yale_wins = sum(yale_only$Team.Result == 'Win')
+n2 = nrow(yale_only)
+
+prop.test(c(wins, yale_wins), c(nrow(unc_only), n2))
+```
+since p-value > 0.05, we cannot reject the null hypothesis at a 0.05 level. Our sample does not provide enough evidence to prove that UNC and Yale are not equally good teams. Even though b) proved that the number of points scored by each team was different, that might not necessarily translate into wins. 
+
+10) The average score for the NC state team is noticebly lower than the other two teams.
+```{r}
+nc_games = bball[bball$Team == 'North Carolina' | bball$Team =='Duke' | bball$Team == 'North Carolina State',]
+boxplot(Team.Score ~ Team, nc_games)
+```
+
+
+b)
+```{r}
+summary(aov(Team.Score ~ Team, nc_games))
+```
+Since the probabilty < 0.05, there is evidence that the average scores of the three teams are not equal.
